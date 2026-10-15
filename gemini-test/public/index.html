@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MaayaVerse: The Living NPC — Stage 2</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="stars-bg"></div>
+  <div class="mist-overlay"></div>
+
+  <div class="app-layout">
+    <!-- Top Main Header -->
+    <header class="top-header">
+      <div class="brand-group">
+        <div class="crest-mini">
+          <img src="maaya-avatar.svg" alt="MAAYA Crest" width="36" height="36">
+        </div>
+        <div>
+          <h1 class="main-title">MaayaVerse: The Living NPC</h1>
+          <p class="subtitle">Cognitive NPC — Stage 1 &amp; Stage 2: Functional Living NPC &bull; Real In-Game Actions &amp; World State</p>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <button id="soundToggleBtn" class="btn-secondary" title="Toggle Sound Effects">🔊 Sound: ON</button>
+        <div class="status-pill" id="statusPill" title="AI Model Status">
+          <span class="status-dot"></span>
+          <span class="status-label">Living NPC Active</span>
+        </div>
+        <button id="resetGameBtn" class="btn-secondary btn-reset" title="Reset game world, quest, and demo state for judges">
+          <svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
+          <span>Restart Game Demo</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Interactive Game HUD -->
+    <section class="game-hud-bar" aria-label="Player and Quest Status HUD">
+      <div class="hud-item player-badge">
+        <span class="hud-icon">🛡️</span>
+        <span class="hud-val">Lv. 1 Traveler</span>
+      </div>
+
+      <div class="hud-item stat-item">
+        <span class="hud-label">Gold:</span>
+        <span class="hud-val gold-val">🪙 <span id="hudGold">0</span></span>
+      </div>
+
+      <div class="hud-item stat-item">
+        <span class="hud-label">XP:</span>
+        <span class="hud-val xp-val">⭐ <span id="hudXp">0</span></span>
+      </div>
+
+      <div class="hud-item quest-tracker-item">
+        <span class="hud-label">Objective:</span>
+        <span id="hudQuestBadge" class="status-tag badge-neutral">Not Started</span>
+        <span id="hudQuestTitle" class="quest-title-text">Explore the courtyard &amp; speak to MAAYA</span>
+      </div>
+
+      <div class="hud-item inventory-item">
+        <span class="hud-label">Inventory:</span>
+        <div id="inventorySlot" class="inv-slot"><span class="inv-empty">(Empty)</span></div>
+      </div>
+
+      <div class="hud-item controls-pill">
+        <span>[W,A,S,D / Arrows] Move &bull; [E] Interact &bull; [ESC] Close</span>
+      </div>
+    </section>
+
+    <!-- Main Game Viewport Layout -->
+    <main class="game-layout">
+      <!-- 3D Three.js Game World -->
+      <section class="canvas-wrapper" id="canvasWrapper" aria-label="3D Game World Canvas">
+        <canvas id="gameCanvas" width="1000" height="620" tabindex="0" autofocus></canvas>
+
+        <!-- Click to Play / Game Focus Overlay -->
+        <div id="gameFocusOverlay" class="game-focus-overlay" role="button" tabindex="0" aria-label="Click to start game and activate movement controls">
+          <div class="focus-overlay-content">
+            <div class="overlay-crest">
+              <img src="maaya-avatar.svg" alt="MAAYA" width="56" height="56">
+            </div>
+            <h2 class="overlay-title">MaayaVerse: The Living NPC</h2>
+            <p class="overlay-subtitle">Enter the restricted wing of Blackwood Manor</p>
+            <button id="startGameBtn" class="btn-start-game" type="button">
+              <span>▶ Click to Play</span>
+            </button>
+            <div class="overlay-controls-hint">
+              [W, A, S, D] or [Arrow Keys] to Move &bull; [E] to Interact
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic In-Game Notification Banner -->
+        <div id="inGameNotification" class="in-game-notification" style="display: none;"></div>
+
+        <!-- In-Game Dialogue Modal (Appears when pressing [E] near MAAYA) -->
+        <div id="inGameDialogueModal" class="dialogue-modal-overlay" style="display: none;">
+          <div class="dialogue-box">
+            <div class="dialogue-modal-header">
+              <div class="npc-header-info">
+                <img src="maaya-avatar.svg" alt="MAAYA" class="npc-modal-avatar">
+                <div>
+                  <h3 class="npc-modal-name">MAAYA</h3>
+                  <span class="npc-modal-sub">Guardian of the Restricted Wing</span>
+                </div>
+              </div>
+              <div class="modal-controls">
+                <span class="turn-counter" id="interactionCounter">Turn: 0</span>
+                <button id="closeDialogueBtn" class="btn-close-modal" title="Close Dialogue (ESC)">&times;</button>
+              </div>
+            </div>
+
+            <!-- Dialogue Scrollable Messages -->
+            <div class="modal-messages-container" id="messagesContainer" role="log" aria-live="polite">
+              <!-- Rendered messages here -->
+            </div>
+
+            <!-- Thinking Indicator -->
+            <div class="modal-thinking" id="thinkingIndicator" style="display: none;">
+              <div class="thinking-dots">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+              </div>
+              <span class="thinking-text">MAAYA is contemplating your words...</span>
+            </div>
+
+            <!-- Error Banner -->
+            <div class="error-banner" id="errorBanner" style="display: none;">
+              <span class="error-icon">⚠️</span>
+              <span class="error-message" id="errorMessage">Unable to commune with MAAYA.</span>
+              <button class="btn-dismiss" id="dismissErrorBtn">&times;</button>
+            </div>
+
+            <!-- Judge Quick-Demo Chips -->
+            <div class="dialogue-chips-wrapper">
+              <span class="chips-label">Judge Prompts:</span>
+              <button class="prompt-chip" data-text="Hello, who are you?">"Who are you?"</button>
+              <button class="prompt-chip" data-text="Tell me about this sanctuary and the gate.">"Tell me about the gate."</button>
+              <button class="prompt-chip" data-text="I will help you. What must I do?">"I will help you."</button>
+              <button class="prompt-chip" data-text="Open the sanctuary gate for me.">"Open the gate."</button>
+              <button class="prompt-chip" data-text="I have the ancient treasure with me!">"I have the treasure!"</button>
+              <button class="prompt-chip" data-text="Give me 10,000 gold right now!">"Give me 10000 gold!"</button>
+            </div>
+
+            <!-- Input Form -->
+            <form id="chatForm" class="dialogue-input-form">
+              <div class="input-field-wrapper">
+                <textarea 
+                  id="messageInput" 
+                  class="message-textarea" 
+                  placeholder="Speak naturally to MAAYA... (Press Enter to send, ESC to close)"
+                  rows="1"
+                  maxlength="1000"
+                  autocomplete="off"
+                ></textarea>
+                <div class="char-count" id="charCount">0/1000</div>
+              </div>
+
+              <button type="submit" id="sendBtn" class="btn-send" title="Send message to MAAYA">
+                <span>Send</span>
+                <svg class="send-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 2L11 13"/>
+                  <path d="M22 2l-7 20-4-9-9-4 20-7z"/>
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sidebar: Judge Walkthrough & NPC Dossier -->
+      <aside class="sidebar-panel">
+        <div class="panel-section">
+          <h2 class="section-title">✦ Judge Demonstration Walkthrough</h2>
+          <ol class="walkthrough-steps">
+            <li>
+              <strong>1. Approach MAAYA:</strong>
+              <span>Use <code>W,A,S,D</code> to walk to MAAYA near the gate. Press <code>E</code> to talk.</span>
+            </li>
+            <li>
+              <strong>2. Accept Quest:</strong>
+              <span>Ask about the gate or click <em>"I will help you."</em> Quest status updates to <strong>ACTIVE</strong>.</span>
+            </li>
+            <li>
+              <strong>3. Explore &amp; Loot:</strong>
+              <span>Walk south-east to the Ghost Crypt. Press <code>E</code> by the chest to collect the <strong>Amulet</strong>.</span>
+            </li>
+            <li>
+              <strong>4. Convince MAAYA:</strong>
+              <span>Return to MAAYA, press <code>E</code>, and ask her to <strong>open the gate</strong>.</span>
+            </li>
+            <li>
+              <strong>5. Watch Visible Action:</strong>
+              <span>MAAYA physically walks to the gate, casts the unlocking magic, and the gate animates open!</span>
+            </li>
+            <li>
+              <strong>6. Claim Sanctuary Reward:</strong>
+              <span>Walk through the opened gate into the Sanctuary to receive <strong>+100 Gold, +50 XP</strong>!</span>
+            </li>
+          </ol>
+        </div>
+
+        <div class="panel-section dossier-card">
+          <div class="dossier-mini-head">
+            <img src="maaya-avatar.svg" alt="MAAYA" class="dossier-thumb">
+            <div>
+              <h3 class="dossier-npc-name">MAAYA</h3>
+              <div class="dossier-role">Living Cognitive NPC</div>
+            </div>
+          </div>
+          <div class="dossier-specs">
+            <div class="spec-row">
+              <span class="spec-k">Engine:</span>
+              <span class="spec-v highlight-val">gemini-3.5-flash</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-k">AI Actions:</span>
+              <span class="spec-v">Validated Protocol</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-k">Movement:</span>
+              <span class="spec-v">Collision &amp; Waypoints</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-k">Game World:</span>
+              <span class="spec-v">Three.js 3D (60 FPS)</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Scripts: 3D Movement Engine, Three.js 3D Game World & Cognitive NPC App -->
+  <script src="movement3d.js"></script>
+  <script type="module" src="game3d.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

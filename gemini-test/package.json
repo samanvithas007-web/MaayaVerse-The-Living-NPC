@@ -1,0 +1,22 @@
+{
+  "name": "gemini-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node test.mjs",
+    "test:dialogue": "node test-dialogue.mjs",
+    "test:stage2": "node test-stage2.mjs",
+    "test:movement:3d": "node test-movement-3d.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@google/genai": "^2.29.0",
+    "dotenv": "^18.0.7",
+    "three": "^0.186.1"
+  }
+}

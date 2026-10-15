@@ -1,0 +1,199 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="300" height="300">
+  <defs>
+    <!-- Background Vignette -->
+    <radialGradient id="bgGrad" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#1f1832" />
+      <stop offset="50%" stop-color="#120e20" />
+      <stop offset="85%" stop-color="#08060d" />
+      <stop offset="100%" stop-color="#030205" />
+    </radialGradient>
+
+    <!-- Spectral Aura Glow -->
+    <radialGradient id="auraGlow" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#9333ea" stop-opacity="0.35" />
+      <stop offset="50%" stop-color="#6366f1" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Gothic Window Arch -->
+    <linearGradient id="archGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4c1d95" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#1e1b4b" stop-opacity="0.05" />
+    </linearGradient>
+
+    <!-- Skin Gradient - Ethereal Porcelain with Cool Lilac Undertones -->
+    <linearGradient id="skinGrad" x1="45%" y1="20%" x2="55%" y2="85%">
+      <stop offset="0%" stop-color="#fdf4ff" />
+      <stop offset="35%" stop-color="#fae8ff" />
+      <stop offset="70%" stop-color="#e9d5ff" />
+      <stop offset="100%" stop-color="#c084fc" stop-opacity="0.8" />
+    </linearGradient>
+
+    <!-- Hair Shading -->
+    <linearGradient id="hairGrad" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#1e112a" />
+      <stop offset="40%" stop-color="#13091e" />
+      <stop offset="75%" stop-color="#09040d" />
+      <stop offset="100%" stop-color="#020104" />
+    </linearGradient>
+
+    <!-- Hair Highlight -->
+    <linearGradient id="hairHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.4" />
+      <stop offset="50%" stop-color="#c084fc" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#581c87" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Eyes - Luminous Amethyst -->
+    <radialGradient id="eyeGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f3e8ff" />
+      <stop offset="25%" stop-color="#d8b4fe" />
+      <stop offset="60%" stop-color="#9333ea" />
+      <stop offset="90%" stop-color="#581c87" />
+      <stop offset="100%" stop-color="#2e1065" />
+    </radialGradient>
+
+    <!-- Eye Glow Filter -->
+    <filter id="eyeGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Gem Gradient -->
+    <radialGradient id="gemGrad" cx="40%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#f0abfc" />
+      <stop offset="40%" stop-color="#c026d3" />
+      <stop offset="85%" stop-color="#701a75" />
+      <stop offset="100%" stop-color="#3b0764" />
+    </radialGradient>
+
+    <!-- Silver Filigree / Circlet -->
+    <linearGradient id="silverGrad" x1="0%" y1="0%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#f8fafc" />
+      <stop offset="40%" stop-color="#cbd5e1" />
+      <stop offset="70%" stop-color="#94a3b8" />
+      <stop offset="100%" stop-color="#475569" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="300" height="300" fill="url(#bgGrad)" />
+
+  <!-- Background Gothic Arched Window -->
+  <path d="M 110 200 V 75 A 40 40 0 0 1 190 75 V 200 Z" fill="url(#archGrad)" stroke="#3b0764" stroke-width="1.5" opacity="0.6" />
+  <line x1="150" y1="35" x2="150" y2="200" stroke="#3b0764" stroke-width="1.5" opacity="0.4" />
+  <line x1="110" y1="115" x2="190" y2="115" stroke="#3b0764" stroke-width="1.5" opacity="0.4" />
+
+  <!-- Aura of Haunted Energy -->
+  <circle cx="150" cy="130" r="120" fill="url(#auraGlow)" />
+
+  <!-- Flowing Back Hair -->
+  <path d="M 85 110 C 60 160 50 220 70 290 C 85 295 105 285 110 270 C 95 210 100 160 105 130 Z" fill="url(#hairGrad)" />
+  <path d="M 215 110 C 240 160 250 220 230 290 C 215 295 195 285 190 270 C 205 210 200 160 195 130 Z" fill="url(#hairGrad)" />
+
+  <!-- Gothic Robe / Silhouette Shoulders -->
+  <path d="M 50 300 C 60 250 95 220 120 215 C 130 225 140 230 150 230 C 160 230 170 225 180 215 C 205 220 240 250 250 300 Z" fill="#0d0817" />
+  <path d="M 85 240 C 115 255 135 255 150 255 C 165 255 185 255 215 240 C 205 270 180 295 150 298 C 120 295 95 270 85 240 Z" fill="#180e2b" opacity="0.8" />
+
+  <!-- Lace Collar Detailing -->
+  <path d="M 125 212 Q 137 225 150 225 Q 163 225 175 212" fill="none" stroke="url(#silverGrad)" stroke-width="1.5" opacity="0.7" />
+  <path d="M 115 220 C 130 238 170 238 185 220" fill="none" stroke="url(#silverGrad)" stroke-width="1" stroke-dasharray="2,3" opacity="0.6" />
+
+  <!-- Neck -->
+  <path d="M 132 175 C 132 195 135 215 137 222 C 145 224 155 224 163 222 C 165 215 168 195 168 175 Z" fill="url(#skinGrad)" />
+  <!-- Neck Shadow -->
+  <path d="M 132 175 C 142 188 158 188 168 175 C 168 185 165 200 150 202 C 135 200 132 185 132 175 Z" fill="#6b21a8" opacity="0.35" />
+
+  <!-- Head / Face Base Shape -->
+  <path d="M 150 78 C 112 78 102 110 106 142 C 109 168 126 195 150 208 C 174 195 191 168 194 142 C 198 110 188 78 150 78 Z" fill="url(#skinGrad)" />
+
+  <!-- Face Contours & Cheekbone Shading (Haunting, Elegant) -->
+  <path d="M 108 145 C 114 165 125 180 140 195 C 133 180 120 165 118 145 Z" fill="#7e22ce" opacity="0.18" />
+  <path d="M 192 145 C 186 165 175 180 160 195 C 167 180 180 165 182 145 Z" fill="#7e22ce" opacity="0.18" />
+
+  <!-- Subtle Gothic Lips -->
+  <path d="M 140 178 Q 150 175 160 178 Q 150 186 140 178 Z" fill="#4a044e" />
+  <path d="M 143 178 Q 150 180 157 178" stroke="#1e0220" stroke-width="0.8" />
+
+  <!-- Slender Nose Structure -->
+  <path d="M 149 140 L 147 163 L 150 165 L 153 163 Z" fill="#a855f7" opacity="0.2" />
+  <ellipse cx="147" cy="164" rx="1.5" ry="0.8" fill="#581c87" opacity="0.4" />
+  <ellipse cx="153" cy="164" rx="1.5" ry="0.8" fill="#581c87" opacity="0.4" />
+
+  <!-- Eyes - Left Eye -->
+  <g class="eye-group">
+    <!-- Shadow socket -->
+    <path d="M 120 134 Q 131 126 141 134 Q 131 143 120 134 Z" fill="#2e1065" opacity="0.3" />
+    <!-- Sclera with violet tint -->
+    <path d="M 122 135 C 127 130 135 130 140 135 C 135 140 127 140 122 135 Z" fill="#f5f3ff" />
+    <!-- Iris -->
+    <circle cx="131" cy="135" r="4.5" fill="url(#eyeGrad)" filter="url(#eyeGlow)" />
+    <!-- Pupil -->
+    <circle cx="131" cy="135" r="2" fill="#090314" />
+    <!-- Mystic Glimmer -->
+    <circle cx="129.8" cy="133.5" r="1.1" fill="#ffffff" />
+    <circle cx="132.5" cy="136.2" r="0.6" fill="#fdf4ff" />
+    <!-- Eyeliner & Lashes -->
+    <path d="M 119 135 Q 131 128 142 134" fill="none" stroke="#090314" stroke-width="1.8" stroke-linecap="round" />
+    <path d="M 122 136 Q 131 141 140 136" fill="none" stroke="#2e1065" stroke-width="0.8" />
+    <!-- Eyebrow -->
+    <path d="M 119 127 Q 131 121 142 125" fill="none" stroke="#180e2b" stroke-width="1.4" stroke-linecap="round" />
+  </g>
+
+  <!-- Eyes - Right Eye -->
+  <g class="eye-group">
+    <!-- Shadow socket -->
+    <path d="M 159 134 Q 169 126 180 134 Q 169 143 159 134 Z" fill="#2e1065" opacity="0.3" />
+    <!-- Sclera with violet tint -->
+    <path d="M 160 135 C 165 130 173 130 178 135 C 173 140 165 140 160 135 Z" fill="#f5f3ff" />
+    <!-- Iris -->
+    <circle cx="169" cy="135" r="4.5" fill="url(#eyeGrad)" filter="url(#eyeGlow)" />
+    <!-- Pupil -->
+    <circle cx="169" cy="135" r="2" fill="#090314" />
+    <!-- Mystic Glimmer -->
+    <circle cx="167.8" cy="133.5" r="1.1" fill="#ffffff" />
+    <circle cx="170.5" cy="136.2" r="0.6" fill="#fdf4ff" />
+    <!-- Eyeliner & Lashes -->
+    <path d="M 158 134 Q 169 128 181 135" fill="none" stroke="#090314" stroke-width="1.8" stroke-linecap="round" />
+    <path d="M 160 136 Q 169 141 178 136" fill="none" stroke="#2e1065" stroke-width="0.8" />
+    <!-- Eyebrow -->
+    <path d="M 158 125 Q 169 121 181 127" fill="none" stroke="#180e2b" stroke-width="1.4" stroke-linecap="round" />
+  </g>
+
+  <!-- Front Hair Strands Framing Face -->
+  <!-- Left Hair Curtain -->
+  <path d="M 150 78 C 130 78 108 95 104 125 C 100 155 106 185 114 205 C 116 209 119 205 118 198 C 114 175 110 145 116 122 C 122 98 138 88 150 86 Z" fill="url(#hairGrad)" />
+  <path d="M 112 110 C 110 145 114 180 124 212 C 122 212 118 200 116 180 C 112 155 110 125 114 105 Z" fill="url(#hairHighlight)" />
+
+  <!-- Right Hair Curtain -->
+  <path d="M 150 78 C 170 78 192 95 196 125 C 200 155 194 185 186 205 C 184 209 181 205 182 198 C 186 175 190 145 184 122 C 178 98 162 88 150 86 Z" fill="url(#hairGrad)" />
+  <path d="M 188 110 C 190 145 186 180 176 212 C 178 212 182 200 184 180 C 188 155 190 125 186 105 Z" fill="url(#hairHighlight)" />
+
+  <!-- Forehead Diadem / Silver Moon Circlet -->
+  <g class="circlet">
+    <!-- Arc band -->
+    <path d="M 106 108 Q 150 94 194 108 Q 150 97 106 108 Z" fill="url(#silverGrad)" />
+    <!-- Fine Filigree Peak -->
+    <path d="M 142 98 Q 150 85 158 98 Q 150 92 142 98 Z" fill="url(#silverGrad)" />
+    <!-- Hanging Silver Chains -->
+    <path d="M 145 98 C 147 104 150 108 150 114 C 150 108 153 104 155 98" fill="none" stroke="url(#silverGrad)" stroke-width="1" />
+    <!-- Forehead Tear Gem -->
+    <ellipse cx="150" cy="116" rx="2.5" ry="4" fill="url(#gemGrad)" filter="url(#eyeGlow)" />
+    <circle cx="149.2" cy="114.5" r="0.8" fill="#ffffff" />
+  </g>
+
+  <!-- Dark Amethyst Choker / Pendant -->
+  <rect x="138" y="218" width="24" height="6" rx="2" fill="#13091e" stroke="url(#silverGrad)" stroke-width="0.8" />
+  <polygon points="150,224 156,233 150,242 144,233" fill="url(#gemGrad)" stroke="url(#silverGrad)" stroke-width="1" filter="url(#eyeGlow)" />
+  <circle cx="148.5" cy="231" r="1" fill="#ffffff" />
+
+  <!-- Spectral Floating Mists / Particles -->
+  <circle cx="70" cy="180" r="1.5" fill="#c084fc" opacity="0.6" />
+  <circle cx="85" cy="220" r="1.2" fill="#9333ea" opacity="0.5" />
+  <circle cx="230" cy="170" r="1.5" fill="#c084fc" opacity="0.6" />
+  <circle cx="215" cy="230" r="1" fill="#a855f7" opacity="0.4" />
+  <circle cx="150" cy="45" r="1.2" fill="#d8b4fe" opacity="0.5" />
+
+  <!-- Subtle Ethereal Moon Crest -->
+  <path d="M 150 25 C 145 28 143 33 144 38 C 147 34 152 33 155 35 C 152 30 148 27 150 25 Z" fill="#cbd5e1" opacity="0.7" />
+</svg>

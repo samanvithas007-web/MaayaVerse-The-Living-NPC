@@ -1,0 +1,18 @@
+{
+  "name": "cognitive-npc",
+  "version": "1.0.0",
+  "description": "Cognitive NPC - Stage 1 Foundation: Conversational Dialogue System with MAAYA",
+  "scripts": {
+    "start": "npm start --prefix gemini-test",
+    "test": "npm test --prefix gemini-test",
+    "test:dialogue": "npm run test:dialogue --prefix gemini-test"
+  },
+  "keywords": [
+    "gemini",
+    "npc",
+    "ai",
+    "dialogue",
+    "maaya"
+  ],
+  "license": "ISC"
+}
