@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MaayaVerse: The Living NPC — Stage 2</title>
+  <title>MaayaVerse: The Living NPC</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,12 +22,33 @@
         </div>
         <div>
           <h1 class="main-title">MaayaVerse: The Living NPC</h1>
-          <p class="subtitle">Cognitive NPC — Stage 1 &amp; Stage 2: Functional Living NPC &bull; Real In-Game Actions &amp; World State</p>
+          <p class="subtitle">A premium INDIE haunted Game.</p>
         </div>
       </div>
 
       <div class="header-controls">
+        <!-- Stage 3: Profile Switcher Bar -->
+        <div class="profile-switcher-bar" aria-label="Select Player Profile">
+          <span class="switcher-label">Profile:</span>
+          <button class="btn-profile active" id="btnProfile1" data-profile-id="player1" title="Althea - Trusted Explorer (Trust: 80)">
+            <span class="profile-avatar">🛡️</span>
+            <span class="profile-name">P1: Althea</span>
+            <span class="profile-trust-pill">80</span>
+          </button>
+          <button class="btn-profile" id="btnProfile2" data-profile-id="player2" title="Kaelen - Neutral Traveler (Trust: 50)">
+            <span class="profile-avatar">🗡️</span>
+            <span class="profile-name">P2: Kaelen</span>
+            <span class="profile-trust-pill">50</span>
+          </button>
+          <button class="btn-profile" id="btnProfile3" data-profile-id="player3" title="Vane - Distrusted Stranger (Trust: 20)">
+            <span class="profile-avatar">🦹</span>
+            <span class="profile-name">P3: Vane</span>
+            <span class="profile-trust-pill">20</span>
+          </button>
+        </div>
+
         <button id="soundToggleBtn" class="btn-secondary" title="Toggle Sound Effects">🔊 Sound: ON</button>
+        <button id="toggleInspectorBtn" class="btn-secondary btn-inspector" title="Open Stage 3 Innovation & Intelligence Inspector">🔍 Inspector</button>
         <div class="status-pill" id="statusPill" title="AI Model Status">
           <span class="status-dot"></span>
           <span class="status-label">Living NPC Active</span>
@@ -37,7 +58,7 @@
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
             <path d="M3 3v5h5"/>
           </svg>
-          <span>Restart Game Demo</span>
+          <span>Restart Demo</span>
         </button>
       </div>
     </header>
@@ -46,7 +67,18 @@
     <section class="game-hud-bar" aria-label="Player and Quest Status HUD">
       <div class="hud-item player-badge">
         <span class="hud-icon">🛡️</span>
-        <span class="hud-val">Lv. 1 Traveler</span>
+        <span class="hud-val" id="hudProfileBadge">Althea (Explorer)</span>
+      </div>
+
+      <div class="hud-item trust-item">
+        <span class="hud-label">Trust:</span>
+        <span id="hudTrustScore" class="hud-val trust-val">80/100</span>
+        <span id="hudTrustLevel" class="status-tag badge-trust-trusted">Trusted</span>
+      </div>
+
+      <div class="hud-item zone-item">
+        <span class="hud-label">Zone:</span>
+        <span id="hudCurrentZone" class="hud-val zone-val">Courtyard of the Gate</span>
       </div>
 
       <div class="hud-item stat-item">
@@ -62,7 +94,7 @@
       <div class="hud-item quest-tracker-item">
         <span class="hud-label">Objective:</span>
         <span id="hudQuestBadge" class="status-tag badge-neutral">Not Started</span>
-        <span id="hudQuestTitle" class="quest-title-text">Explore the courtyard &amp; speak to MAAYA</span>
+        <span id="hudQuestTitle" class="quest-title-text">Explore the settlement &amp; speak to MAAYA</span>
       </div>
 
       <div class="hud-item inventory-item">
@@ -71,7 +103,7 @@
       </div>
 
       <div class="hud-item controls-pill">
-        <span>[W,A,S,D / Arrows] Move &bull; [E] Interact &bull; [ESC] Close</span>
+        <span>[WASD/Arrows] Move &bull; [E] Interact &bull; [ESC] Close</span>
       </div>
     </section>
 
@@ -88,7 +120,7 @@
               <img src="maaya-avatar.svg" alt="MAAYA" width="56" height="56">
             </div>
             <h2 class="overlay-title">MaayaVerse: The Living NPC</h2>
-            <p class="overlay-subtitle">Enter the restricted wing of Blackwood Manor</p>
+            <p class="overlay-subtitle">Blackwood Haunted Settlement</p>
             <button id="startGameBtn" class="btn-start-game" type="button">
               <span>▶ Click to Play</span>
             </button>
@@ -101,7 +133,7 @@
         <!-- Dynamic In-Game Notification Banner -->
         <div id="inGameNotification" class="in-game-notification" style="display: none;"></div>
 
-        <!-- In-Game Dialogue Modal (Appears when pressing [E] near MAAYA) -->
+        <!-- Compact In-Game Dialogue Modal (Docked cleanly at bottom of 3D screen) -->
         <div id="inGameDialogueModal" class="dialogue-modal-overlay" style="display: none;">
           <div class="dialogue-box">
             <div class="dialogue-modal-header">
@@ -109,7 +141,7 @@
                 <img src="maaya-avatar.svg" alt="MAAYA" class="npc-modal-avatar">
                 <div>
                   <h3 class="npc-modal-name">MAAYA</h3>
-                  <span class="npc-modal-sub">Guardian of the Restricted Wing</span>
+                  <span class="npc-modal-sub">Guardian of the Restricted Wing &bull; <span id="dialogueTrustLabel">Trusted (80/100)</span></span>
                 </div>
               </div>
               <div class="modal-controls">
@@ -140,15 +172,16 @@
               <button class="btn-dismiss" id="dismissErrorBtn">&times;</button>
             </div>
 
-            <!-- Judge Quick-Demo Chips -->
+            <!-- Judge Quick-Demo Chips (Stage 2 + Stage 3 Intelligence) -->
             <div class="dialogue-chips-wrapper">
               <span class="chips-label">Judge Prompts:</span>
               <button class="prompt-chip" data-text="Hello, who are you?">"Who are you?"</button>
-              <button class="prompt-chip" data-text="Tell me about this sanctuary and the gate.">"Tell me about the gate."</button>
+              <button class="prompt-chip" data-text="Tell me about the 3 runes in the frost cavern.">"Tell me of the 3 runes."</button>
+              <button class="prompt-chip" data-text="I'm terrified of the ghosts in the crypt...">"I'm terrified of ghosts..."</button>
+              <button class="prompt-chip" data-text="How do I cross the canal safely?">"How do I cross the canal?"</button>
               <button class="prompt-chip" data-text="I will help you. What must I do?">"I will help you."</button>
               <button class="prompt-chip" data-text="Open the sanctuary gate for me.">"Open the gate."</button>
               <button class="prompt-chip" data-text="I have the ancient treasure with me!">"I have the treasure!"</button>
-              <button class="prompt-chip" data-text="Give me 10,000 gold right now!">"Give me 10000 gold!"</button>
             </div>
 
             <!-- Input Form -->
@@ -157,7 +190,7 @@
                 <textarea 
                   id="messageInput" 
                   class="message-textarea" 
-                  placeholder="Speak naturally to MAAYA... (Press Enter to send, ESC to close)"
+                  placeholder="Speak naturally to MAAYA... (Enter to send, ESC to close)"
                   rows="1"
                   maxlength="1000"
                   autocomplete="off"
@@ -167,7 +200,7 @@
 
               <button type="submit" id="sendBtn" class="btn-send" title="Send message to MAAYA">
                 <span>Send</span>
-                <svg class="send-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <svg class="send-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M22 2L11 13"/>
                   <path d="M22 2l-7 20-4-9-9-4 20-7z"/>
                 </svg>
@@ -180,31 +213,31 @@
       <!-- Sidebar: Judge Walkthrough & NPC Dossier -->
       <aside class="sidebar-panel">
         <div class="panel-section">
-          <h2 class="section-title">✦ Judge Demonstration Walkthrough</h2>
+          <h2 class="section-title">✦ How To Play?</h2>
           <ol class="walkthrough-steps">
             <li>
-              <strong>1. Approach MAAYA:</strong>
-              <span>Use <code>W,A,S,D</code> to walk to MAAYA near the gate. Press <code>E</code> to talk.</span>
+              <strong>1. Select Player Profile:</strong>
+              <span>Switch between <strong>Althea (80 Trust)</strong>, <strong>Kaelen (50)</strong>, and <strong>Vane (20)</strong>. Notice MAAYA's distinct tone, warmth, and hint depth.</span>
             </li>
             <li>
-              <strong>2. Accept Quest:</strong>
-              <span>Ask about the gate or click <em>"I will help you."</em> Quest status updates to <strong>ACTIVE</strong>.</span>
+              <strong>2. Environmental Hazards:</strong>
+              <span>Cross the <strong>Mistveil Canal</strong> stepping stones (avoid water splash pushback). Bypass <strong>Crimson Braziers</strong> (avoid scorch pushback).</span>
             </li>
             <li>
-              <strong>3. Explore &amp; Loot:</strong>
-              <span>Walk south-east to the Ghost Crypt. Press <code>E</code> by the chest to collect the <strong>Amulet</strong>.</span>
+              <strong>3. Frost Cavern &amp; Rune Puzzle:</strong>
+              <span>Feel slippery ice sliding physics. Step on the 3 Pedestals in sequence: <strong>Ignis &rarr; Glacies &rarr; Aether</strong> to dissolve the Runic Crypt Barrier!</span>
             </li>
             <li>
-              <strong>4. Convince MAAYA:</strong>
-              <span>Return to MAAYA, press <code>E</code>, and ask her to <strong>open the gate</strong>.</span>
+              <strong>4. Recover the Amulet:</strong>
+              <span>Enter the inner crypt, dodge the ghosts, and press <code>E</code> by the chest to acquire the <strong>Amulet of the Sunken Veil</strong>.</span>
             </li>
             <li>
-              <strong>5. Watch Visible Action:</strong>
-              <span>MAAYA physically walks to the gate, casts the unlocking magic, and the gate animates open!</span>
+              <strong>5. Convince MAAYA to Open Gate:</strong>
+              <span>Return to MAAYA, talk to her, or confide ghost fears (+Trust). Ask her to <strong>open the gate</strong>. Watch her physical walking and casting sequence!</span>
             </li>
             <li>
-              <strong>6. Claim Sanctuary Reward:</strong>
-              <span>Walk through the opened gate into the Sanctuary to receive <strong>+100 Gold, +50 XP</strong>!</span>
+              <strong>6. Innovation Inspector:</strong>
+              <span>Click <strong>🔍 Inspector</strong> above to view real-time persistent memory logs, trust gauges, and puzzle state.</span>
             </li>
           </ol>
         </div>
@@ -214,7 +247,7 @@
             <img src="maaya-avatar.svg" alt="MAAYA" class="dossier-thumb">
             <div>
               <h3 class="dossier-npc-name">MAAYA</h3>
-              <div class="dossier-role">Living Cognitive NPC</div>
+              <div class="dossier-role">The Guardian of the Gate.</div>
             </div>
           </div>
           <div class="dossier-specs">
@@ -223,22 +256,125 @@
               <span class="spec-v highlight-val">gemini-3.5-flash</span>
             </div>
             <div class="spec-row">
-              <span class="spec-k">AI Actions:</span>
-              <span class="spec-v">Validated Protocol</span>
+              <span class="spec-k">Profiles:</span>
+              <span class="spec-v">3 Isolated Profiles</span>
             </div>
             <div class="spec-row">
-              <span class="spec-k">Movement:</span>
-              <span class="spec-v">Collision &amp; Waypoints</span>
+              <span class="spec-k">Memory:</span>
+              <span class="spec-v">Persistent (Disk JSON)</span>
             </div>
             <div class="spec-row">
-              <span class="spec-k">Game World:</span>
-              <span class="spec-v">Three.js 3D (60 FPS)</span>
+              <span class="spec-k">Trust System:</span>
+              <span class="spec-v">0–100 Dynamic Tiers</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-k">Puzzle:</span>
+              <span class="spec-v">Tri-Rune Sequence</span>
             </div>
           </div>
         </div>
       </aside>
     </main>
   </div>
+
+  <!-- Stage 3 Developer / Judge Inspector Drawer -->
+  <aside id="inspectorDrawer" class="inspector-drawer" aria-label="Stage 3 Innovation & Intelligence Inspector">
+    <div class="inspector-header">
+      <div class="inspector-title-wrap">
+        <h3 class="inspector-title">✦ Inspector</h3>
+        <span class="inspector-sub">Live NPC Cognitive Architecture</span>
+      </div>
+      <button id="closeInspectorBtn" class="btn-close-modal" title="Close Inspector">&times;</button>
+    </div>
+
+    <div class="inspector-body">
+      <!-- Profile & Dynamic Trust Meter -->
+      <section class="inspector-card">
+        <div class="card-head">
+          <h4 class="card-title">Active Profile &amp; Trust</h4>
+          <span id="inspectorProfileBadge" class="status-tag badge-trust-trusted">Trusted (80/100)</span>
+        </div>
+        <div class="profile-details-grid">
+          <div class="p-detail">
+            <span class="p-label">Explorer:</span>
+            <span id="inspectorProfileName" class="p-value">Althea</span>
+          </div>
+          <div class="p-detail">
+            <span class="p-label">Archetype:</span>
+            <span id="inspectorProfileArchetype" class="p-value">Trusted Explorer</span>
+          </div>
+        </div>
+        <div class="trust-gauge-wrap">
+          <div class="trust-gauge-header">
+            <span>Trust Score:</span>
+            <strong id="inspectorTrustScoreText">80 / 100</strong>
+          </div>
+          <div class="trust-meter-bar">
+            <div id="inspectorTrustFill" class="trust-meter-fill fill-trusted" style="width: 80%;"></div>
+          </div>
+          <div class="trust-tiers-legend">
+            <span class="tier-mark">0 Distrusted</span>
+            <span class="tier-mark">35 Neutral</span>
+            <span class="tier-mark">65 Trusted 100</span>
+          </div>
+        </div>
+        <button id="resetActiveProfileBtn" class="btn-secondary btn-reset-profile" title="Reset this profile's memory and trust to initial state">
+          ↺ Reset Active Profile Memory
+        </button>
+      </section>
+
+      <!-- Tri-Rune Environmental Puzzle -->
+      <section class="inspector-card">
+        <div class="card-head">
+          <h4 class="card-title">Tri-Rune Puzzle State</h4>
+          <span id="inspectorBarrierBadge" class="status-tag badge-alert">Barrier Locked</span>
+        </div>
+        <p class="card-desc">Must be awakened in proper sequence: Ignis &rarr; Glacies &rarr; Aether.</p>
+        <div class="runes-status-list">
+          <div class="rune-status-row" id="runeRowIgnis">
+            <span class="rune-icon" style="color: #f97316;">🔥 Ignis (Fire):</span>
+            <span class="rune-pill" id="runePillIgnis">Inactive</span>
+          </div>
+          <div class="rune-status-row" id="runeRowGlacies">
+            <span class="rune-icon" style="color: #06b6d4;">❄️ Glacies (Ice):</span>
+            <span class="rune-pill" id="runePillGlacies">Inactive</span>
+          </div>
+          <div class="rune-status-row" id="runeRowAether">
+            <span class="rune-icon" style="color: #8b5cf6;">✨ Aether (Arcane):</span>
+            <span class="rune-pill" id="runePillAether">Inactive</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Current Zone Tracking -->
+      <section class="inspector-card">
+        <div class="card-head">
+          <h4 class="card-title">Location &amp; Hazards</h4>
+        </div>
+        <div class="zone-info-row">
+          <span class="p-label">Current Zone:</span>
+          <span id="inspectorCurrentZone" class="p-value highlight-val">Courtyard of the Gate</span>
+        </div>
+        <div class="hazard-indicators">
+          <span class="hazard-tag">🌊 Mistveil Canal (Active)</span>
+          <span class="hazard-tag">🔥 Crimson Braziers (Active)</span>
+          <span class="hazard-tag">❄️ Frost Cavern Ice (Active)</span>
+        </div>
+      </section>
+
+      <!-- Persistent Structured Memory Log -->
+      <section class="inspector-card">
+        <div class="card-head">
+          <h4 class="card-title">Persistent Memory Log</h4>
+          <span class="memory-count-badge" id="inspectorMemoryCount">4 Stored</span>
+        </div>
+        <p class="card-desc">Survives page refresh &amp; server restarts (stored in profiles.json).</p>
+        <div class="memory-logs-container" id="inspectorMemoriesList">
+          <!-- Dynamically populated from /api/profiles -->
+        </div>
+      </section>
+    </div>
+  </aside>
 
   <!-- Scripts: 3D Movement Engine, Three.js 3D Game World & Cognitive NPC App -->
   <script src="movement3d.js"></script>

@@ -1,0 +1,413 @@
+{
+  "activeProfileId": "player1",
+  "profiles": {
+    "player1": {
+      "id": "player1",
+      "name": "Althea",
+      "title": "Trusted Explorer",
+      "archetype": "Trusted Explorer",
+      "trustScore": 87,
+      "trustLevel": "Trusted",
+      "memories": [
+        {
+          "id": "mem_p1_1",
+          "type": "lore",
+          "content": "Althea is a seasoned scholar who previously mapped ancient runes of Blackwood sanctuary.",
+          "text": "Althea is a seasoned scholar who previously mapped ancient runes of Blackwood sanctuary.",
+          "timestamp": 1728900000000
+        },
+        {
+          "id": "mem_p1_2",
+          "type": "promise",
+          "content": "Pledged to never disturb the ancient sleeping spirits unnecessarily.",
+          "text": "Pledged to never disturb the ancient sleeping spirits unnecessarily.",
+          "timestamp": 1728900000000
+        },
+        {
+          "id": "mem_hazard_1792066699797_868",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792066699797
+        },
+        {
+          "id": "mem_hazard_1792066702978_55",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792066702978
+        },
+        {
+          "id": "mem_hazard_1792066706360_3",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792066706360
+        },
+        {
+          "id": "mem_hazard_1792066739113_442",
+          "type": "HAZARD",
+          "content": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "text": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "timestamp": 1792066739113
+        },
+        {
+          "id": "mem_hazard_1792066744348_666",
+          "type": "HAZARD",
+          "content": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "text": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "timestamp": 1792066744348
+        },
+        {
+          "id": "mem_hazard_1792066801169_131",
+          "type": "HAZARD",
+          "content": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "text": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "timestamp": 1792066801169
+        },
+        {
+          "id": "mem_hazard_1792066963424_297",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792066963424
+        },
+        {
+          "id": "mem_hazard_1792066966975_389",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792066966975
+        },
+        {
+          "id": "mem_hazard_1792066971383_912",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792066971383
+        },
+        {
+          "id": "mem_hazard_1792066975323_578",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792066975323
+        },
+        {
+          "id": "mem_hazard_1792066978860_135",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792066978860
+        },
+        {
+          "id": "mem_hazard_1792067014444_10",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792067014444
+        },
+        {
+          "id": "mem_hazard_1792067208550_153",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792067208550
+        },
+        {
+          "id": "mem_hazard_1792069775383_546",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792069775383
+        },
+        {
+          "id": "mem_hazard_1792071976273_823",
+          "type": "HAZARD",
+          "content": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "text": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "timestamp": 1792071976273
+        },
+        {
+          "id": "mem_hazard_1792071985653_836",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792071985653
+        },
+        {
+          "id": "mem_hazard_1792071991184_493",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792071991184
+        }
+      ],
+      "verifiedEvents": [
+        "P1_INITIAL_ALLIANCE",
+        "PUZZLE_SOLVED",
+        "TREASURE_RETURNED",
+        "FALSE_CLAIM_1792067129679"
+      ],
+      "gameState": {
+        "questStatus": "NOT_STARTED",
+        "hasTreasure": false,
+        "treasureChestOpened": false,
+        "puzzleSolved": false,
+        "runesActivated": [
+          "ignis"
+        ],
+        "gateState": "LOCKED",
+        "gold": 0,
+        "xp": 0,
+        "rewardClaimed": false,
+        "currentZone": "Courtyard of the Gate",
+        "historyLog": [
+          {
+            "event": "HAZARD_TRIGGERED",
+            "hazardType": "WATER",
+            "details": "Mistveil Canal water splash pushback",
+            "timestamp": 1792069775383
+          },
+          {
+            "event": "HAZARD_TRIGGERED",
+            "hazardType": "FIRE",
+            "details": "Crimson Fire Brazier scorch pushback",
+            "timestamp": 1792071976273
+          },
+          {
+            "event": "HAZARD_TRIGGERED",
+            "hazardType": "WATER",
+            "details": "Mistveil Canal water splash pushback",
+            "timestamp": 1792071985653
+          },
+          {
+            "event": "HAZARD_TRIGGERED",
+            "hazardType": "WATER",
+            "details": "Mistveil Canal water splash pushback",
+            "timestamp": 1792071991184
+          }
+        ]
+      }
+    },
+    "player2": {
+      "id": "player2",
+      "name": "Kaelen",
+      "title": "Neutral Stranger",
+      "archetype": "Neutral Traveler",
+      "trustScore": 50,
+      "trustLevel": "Neutral",
+      "memories": [
+        {
+          "id": "mem_p2_1",
+          "type": "lore",
+          "content": "A cautious wanderer seeking lost artifacts of the old world.",
+          "text": "A cautious wanderer seeking lost artifacts of the old world.",
+          "timestamp": 1728900000000
+        }
+      ],
+      "verifiedEvents": [],
+      "gameState": {
+        "questStatus": "NOT_STARTED",
+        "hasTreasure": false,
+        "treasureChestOpened": false,
+        "puzzleSolved": false,
+        "runesActivated": [],
+        "gateState": "LOCKED",
+        "gold": 0,
+        "xp": 0,
+        "rewardClaimed": false,
+        "currentZone": "Ancient Settlement",
+        "historyLog": []
+      }
+    },
+    "player3": {
+      "id": "player3",
+      "name": "Vane",
+      "title": "Distrusted Stranger",
+      "archetype": "Distrusted Stranger",
+      "trustScore": 25,
+      "trustLevel": "Distrusted",
+      "memories": [
+        {
+          "id": "mem_p3_1",
+          "type": "incident",
+          "content": "Caught snooping and trespassing near the restricted wing archway without permission.",
+          "text": "Caught snooping and trespassing near the restricted wing archway without permission.",
+          "timestamp": 1728900000000
+        },
+        {
+          "id": "mem_p3_2",
+          "type": "behavior",
+          "content": "Issued a stern warning for demanding rewards and gate access before proving worth.",
+          "text": "Issued a stern warning for demanding rewards and gate access before proving worth.",
+          "timestamp": 1728900000000
+        },
+        {
+          "id": "mem_hazard_1792072087267_75",
+          "type": "HAZARD",
+          "content": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "text": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "timestamp": 1792072087267
+        },
+        {
+          "id": "mem_hazard_1792072097834_222",
+          "type": "HAZARD",
+          "content": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "text": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "timestamp": 1792072097834
+        },
+        {
+          "id": "mem_hazard_1792072113397_192",
+          "type": "HAZARD",
+          "content": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "text": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "timestamp": 1792072113397
+        },
+        {
+          "id": "mem_hazard_1792072118312_786",
+          "type": "HAZARD",
+          "content": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "text": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "timestamp": 1792072118312
+        },
+        {
+          "id": "mem_hazard_1792072218770_22",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792072218770
+        },
+        {
+          "id": "mem_hazard_1792072223646_433",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792072223646
+        },
+        {
+          "id": "mem_hazard_1792072231996_364",
+          "type": "HAZARD",
+          "content": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "text": "Faced WATER hazard: Mistveil Canal water splash pushback",
+          "timestamp": 1792072231996
+        },
+        {
+          "id": "mem_hazard_1792072269497_136",
+          "type": "HAZARD",
+          "content": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "text": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "timestamp": 1792072269497
+        },
+        {
+          "id": "mem_hazard_1792072379322_160",
+          "type": "HAZARD",
+          "content": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "text": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "timestamp": 1792072379322
+        },
+        {
+          "id": "mem_hazard_1792072382724_20",
+          "type": "HAZARD",
+          "content": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "text": "Faced FIRE hazard: Crimson Fire Brazier scorch pushback",
+          "timestamp": 1792072382724
+        }
+      ],
+      "verifiedEvents": [
+        "PUZZLE_SOLVED"
+      ],
+      "gameState": {
+        "questStatus": "NOT_STARTED",
+        "hasTreasure": false,
+        "treasureChestOpened": false,
+        "puzzleSolved": true,
+        "runesActivated": [
+          "ignis",
+          "glacies",
+          "aether"
+        ],
+        "gateState": "LOCKED",
+        "gold": 0,
+        "xp": 0,
+        "rewardClaimed": false,
+        "currentZone": "Crimson Brazier Pass",
+        "historyLog": [
+          {
+            "event": "HAZARD_TRIGGERED",
+            "hazardType": "FIRE",
+            "details": "Crimson Fire Brazier scorch pushback",
+            "timestamp": 1792072087267
+          },
+          {
+            "event": "HAZARD_TRIGGERED",
+            "hazardType": "FIRE",
+            "details": "Crimson Fire Brazier scorch pushback",
+            "timestamp": 1792072097834
+          },
+          {
+            "event": "HAZARD_TRIGGERED",
+            "hazardType": "FIRE",
+            "details": "Crimson Fire Brazier scorch pushback",
+            "timestamp": 1792072113397
+          },
+          {
+            "event": "HAZARD_TRIGGERED",
+            "hazardType": "FIRE",
+            "details": "Crimson Fire Brazier scorch pushback",
+            "timestamp": 1792072118312
+          },
+          {
+            "event": "TRI_RUNE_PUZZLE_SOLVED",
+            "timestamp": 1792072185730
+          },
+          {
+            "event": "TRUST_CHANGE",
+            "eventKey": "PUZZLE_SOLVED",
+            "delta": 5,
+            "newScore": 25,
+            "newLevel": "Distrusted",
+            "reason": "Harmonized the Tri-Rune barrier",
+            "timestamp": 1792072185731
+          },
+          {
+            "event": "HAZARD_TRIGGERED",
+            "hazardType": "WATER",
+            "details": "Mistveil Canal water splash pushback",
+            "timestamp": 1792072218770
+          },
+          {
+            "event": "HAZARD_TRIGGERED",
+            "hazardType": "WATER",
+            "details": "Mistveil Canal water splash pushback",
+            "timestamp": 1792072223646
+          },
+          {
+            "event": "HAZARD_TRIGGERED",
+            "hazardType": "WATER",
+            "details": "Mistveil Canal water splash pushback",
+            "timestamp": 1792072231996
+          },
+          {
+            "event": "HAZARD_TRIGGERED",
+            "hazardType": "FIRE",
+            "details": "Crimson Fire Brazier scorch pushback",
+            "timestamp": 1792072269497
+          },
+          {
+            "event": "HAZARD_TRIGGERED",
+            "hazardType": "FIRE",
+            "details": "Crimson Fire Brazier scorch pushback",
+            "timestamp": 1792072379322
+          },
+          {
+            "event": "HAZARD_TRIGGERED",
+            "hazardType": "FIRE",
+            "details": "Crimson Fire Brazier scorch pushback",
+            "timestamp": 1792072382724
+          }
+        ]
+      }
+    }
+  }
+}

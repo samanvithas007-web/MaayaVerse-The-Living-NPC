@@ -83,6 +83,54 @@ import * as THREE from './lib/three.module.js';
           osc.start(now + i * 0.12);
           osc.stop(now + i * 0.12 + 0.5);
         });
+      } else if (type === 'splash') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.3);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } else if (type === 'scorch') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.linearRampToValueAtTime(60, now + 0.22);
+        gain.gain.setValueAtTime(0.14, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.22);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.22);
+      } else if (type === 'chime') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.exponentialRampToValueAtTime(1320, now + 0.25);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      } else if (type === 'error') {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.setValueAtTime(110, now + 0.1);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.3);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
       }
     } catch (e) {
       // Audio fallback silent
@@ -120,8 +168,12 @@ import * as THREE from './lib/three.module.js';
     ghosts: [],
     torches: [],
     magicParticles: [],
+    braziers: [],
+    runicPedestals: [],
+    waterMesh: null,
+    cryptBarrierMesh: null,
 
-    // Game Progression
+    // Stage 2 & Stage 3 Game Progression
     questStatus: 'NOT_STARTED', // NOT_STARTED, ACTIVE, TREASURE_COLLECTED, READY_TO_COMPLETE, COMPLETED
     hasTreasure: false,
     treasureChestOpened: false,
@@ -129,6 +181,15 @@ import * as THREE from './lib/three.module.js';
     gold: 0,
     xp: 0,
     rewardClaimed: false,
+
+    // Stage 3 Innovation & Intelligence State
+    puzzleSolved: false,
+    runesActivated: [],
+    currentZone: 'Ancient Settlement',
+    lastHazardTime: 0,
+    activeProfileId: 'player1',
+    trustScore: 80,
+    trustLevel: 'Trusted',
 
     // Dialogue & Prompt
     dialogueOpen: false,
@@ -170,6 +231,11 @@ import * as THREE from './lib/three.module.js';
       { minX: -6.8, maxX: -5.2, minZ: -8.8, maxZ: -7.2 },
       { minX: -6.8, maxX: -5.2, minZ: 7.2, maxZ: 8.8 },
 
+      // Stage 3 Fire Braziers Solid Bases
+      { minX: -3.6, maxX: -2.4, minZ: 6.4, maxZ: 7.6 },
+      { minX: 0.4, maxX: 1.6, minZ: 7.9, maxZ: 9.1 },
+      { minX: -2.6, maxX: -1.4, minZ: 11.4, maxZ: 12.6 },
+
       // Celestial Sanctuary Altar
       { minX: 13.5, maxX: 18.5, minZ: -7.5, maxZ: -2.5 },
 
@@ -182,6 +248,11 @@ import * as THREE from './lib/three.module.js';
     // Gate Barrier (blocks passage when LOCKED or OPENING)
     if (Game.gateState !== 'OPEN') {
       list.push({ minX: 3.4, maxX: 4.6, minZ: -2.4, maxZ: 2.4 });
+    }
+
+    // Stage 3 Tri-Rune Crypt Barrier (blocks inner crypt passage until puzzle solved)
+    if (!Game.puzzleSolved) {
+      list.push({ minX: 13.0, maxX: 14.4, minZ: 13.5, maxZ: 18.5 });
     }
 
     return list;
@@ -470,6 +541,214 @@ import * as THREE from './lib/three.module.js';
 
     // 7. Spectral Patrolling Ghosts
     createGhosts(scene);
+
+    // 8. Stage 3 Multi-Stage Adventure & Environmental Hazards
+    buildStage3Environment(scene);
+  }
+
+  // --- STAGE 3 ENVIRONMENTAL OBSTACLES & PUZZLE ---
+  function buildStage3Environment(scene) {
+    // 1. Mistveil Canal (Translucent Animated Water Crossing at z: 2.2 to 4.8)
+    const waterGeo = new THREE.PlaneGeometry(24, 2.8);
+    const waterMat = new THREE.MeshStandardMaterial({
+      color: 0x0284c7,
+      roughness: 0.1,
+      metalness: 0.85,
+      transparent: true,
+      opacity: 0.75
+    });
+    const waterMesh = new THREE.Mesh(waterGeo, waterMat);
+    waterMesh.rotation.x = -Math.PI / 2;
+    waterMesh.position.set(-10, 0.02, 3.5);
+    waterMesh.receiveShadow = true;
+    scene.add(waterMesh);
+    Game.waterMesh = waterMesh;
+
+    // Canal Dark Bed
+    const bedGeo = new THREE.PlaneGeometry(24, 2.8);
+    const bedMat = new THREE.MeshStandardMaterial({ color: 0x082f49, roughness: 0.9 });
+    const bedMesh = new THREE.Mesh(bedGeo, bedMat);
+    bedMesh.rotation.x = -Math.PI / 2;
+    bedMesh.position.set(-10, -0.3, 3.5);
+    scene.add(bedMesh);
+
+    // Stepping Stones / Bridge across Canal (Safe passage at x: -4.5 to -1.0)
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.7, metalness: 0.2 });
+    const stonePositions = [
+      [-4.0, 2.6], [-3.0, 3.5], [-2.0, 4.4], [-1.0, 3.5]
+    ];
+    stonePositions.forEach(([sx, sz]) => {
+      const stoneGeo = new THREE.CylinderGeometry(0.65, 0.75, 0.22, 10);
+      const stoneMesh = new THREE.Mesh(stoneGeo, stoneMat);
+      stoneMesh.position.set(sx, 0.1, sz);
+      stoneMesh.receiveShadow = true;
+      stoneMesh.castShadow = true;
+      scene.add(stoneMesh);
+    });
+
+    // 2. Crimson Fire Braziers (Hazard with pushback)
+    const brazierPositions = [
+      [-3.0, 7.0],
+      [1.0, 8.5],
+      [-2.0, 12.0]
+    ];
+    const bMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.8, metalness: 0.3 });
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+
+    brazierPositions.forEach(([bx, bz]) => {
+      const bGroup = new THREE.Group();
+      bGroup.position.set(bx, 0, bz);
+
+      // Stone Pedestal
+      const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.7, 0.9, 12), bMat);
+      pedestal.position.y = 0.45;
+      pedestal.castShadow = true;
+      bGroup.add(pedestal);
+
+      // Metal Bowl
+      const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.5, 0.35, 12), bMat);
+      bowl.position.y = 1.0;
+      bGroup.add(bowl);
+
+      // Flame Cone
+      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.85, 8), flameMat);
+      flame.position.y = 1.45;
+      bGroup.add(flame);
+
+      // Inner Core
+      const core = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), coreMat);
+      core.position.y = 1.35;
+      bGroup.add(core);
+
+      // Flickering Fire Light
+      const fireLight = new THREE.PointLight(0xff4500, 2.8, 9);
+      fireLight.position.set(0, 1.6, 0);
+      bGroup.add(fireLight);
+
+      scene.add(bGroup);
+      Game.braziers.push({ x: bx, z: bz, light: fireLight, flame, baseIntensity: 2.8 });
+    });
+
+    // 3. Frost Cavern Ground & Spires (Slippery surface at x: 4.5 to 13.5, z: 9.5 to 18.5)
+    const iceGeo = new THREE.PlaneGeometry(9.5, 9.5);
+    const iceMat = new THREE.MeshStandardMaterial({
+      color: 0xa5f3fc,
+      roughness: 0.08,
+      metalness: 0.75,
+      transparent: true,
+      opacity: 0.85
+    });
+    const iceMesh = new THREE.Mesh(iceGeo, iceMat);
+    iceMesh.rotation.x = -Math.PI / 2;
+    iceMesh.position.set(9.0, 0.04, 14.0);
+    iceMesh.receiveShadow = true;
+    scene.add(iceMesh);
+
+    // Frost Spires / Ice Crystals
+    const crystalMat = new THREE.MeshStandardMaterial({
+      color: 0x38bdf8,
+      emissive: 0x0284c7,
+      emissiveIntensity: 0.4,
+      roughness: 0.15,
+      metalness: 0.85,
+      transparent: true,
+      opacity: 0.85
+    });
+    const spires = [
+      [5.0, 10.2], [5.0, 17.8], [12.8, 10.8], [12.8, 17.8]
+    ];
+    spires.forEach(([cx, cz]) => {
+      const spire = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.8, 6), crystalMat);
+      spire.position.set(cx, 0.9, cz);
+      spire.castShadow = true;
+      scene.add(spire);
+    });
+
+    // 4. Tri-Rune Environmental Puzzle Pedestals (Ignis -> Glacies -> Aether)
+    const runeConfigs = [
+      { name: "ignis", label: "Ignis (Fire)", x: 6.0, z: 12.0, color: 0xf97316 },
+      { name: "glacies", label: "Glacies (Ice)", x: 10.0, z: 14.0, color: 0x06b6d4 },
+      { name: "aether", label: "Aether (Arcane)", x: 8.0, z: 17.0, color: 0x8b5cf6 }
+    ];
+
+    runeConfigs.forEach((cfg) => {
+      const pGroup = new THREE.Group();
+      pGroup.position.set(cfg.x, 0, cfg.z);
+
+      // Stone Plinth
+      const plinth = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 1.0, 0.28, 16), bMat);
+      plinth.position.y = 0.14;
+      plinth.receiveShadow = true;
+      pGroup.add(plinth);
+
+      // Glowing Rune Ring
+      const discMat = new THREE.MeshBasicMaterial({ color: cfg.color, side: THREE.DoubleSide });
+      const disc = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.68, 16), discMat);
+      disc.rotation.x = -Math.PI / 2;
+      disc.position.y = 0.29;
+      pGroup.add(disc);
+
+      // Floating Rune Crystal
+      const rCrystalMat = new THREE.MeshStandardMaterial({
+        color: cfg.color,
+        emissive: cfg.color,
+        emissiveIntensity: 0.7,
+        roughness: 0.2,
+        metalness: 0.8
+      });
+      const rCrystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.26, 0), rCrystalMat);
+      rCrystal.position.y = 0.85;
+      rCrystal.castShadow = true;
+      pGroup.add(rCrystal);
+
+      // Pedestal Glow Light
+      const pLight = new THREE.PointLight(cfg.color, 2.2, 5);
+      pLight.position.set(0, 1.0, 0);
+      pGroup.add(pLight);
+
+      scene.add(pGroup);
+      Game.runicPedestals.push({
+        name: cfg.name,
+        label: cfg.label,
+        x: cfg.x,
+        z: cfg.z,
+        group: pGroup,
+        disc,
+        rCrystal,
+        light: pLight,
+        defaultColor: cfg.color,
+        isSteppedOn: false
+      });
+    });
+
+    // 5. Runic Crypt Barrier (Bars entrance to inner crypt at x: 13.6, z: 16)
+    const barrierGroup = new THREE.Group();
+    barrierGroup.position.set(13.6, 0, 16.0);
+
+    // Support Pillars
+    const pilMat = new THREE.MeshStandardMaterial({ color: 0x312e81, roughness: 0.6 });
+    const pil1 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 5.0, 0.8), pilMat);
+    pil1.position.set(0, 2.5, -2.6);
+    barrierGroup.add(pil1);
+    const pil2 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 5.0, 0.8), pilMat);
+    pil2.position.set(0, 2.5, 2.6);
+    barrierGroup.add(pil2);
+
+    // Glowing Barrier Wall
+    const barMat = new THREE.MeshStandardMaterial({
+      color: 0x818cf8,
+      emissive: 0x4f46e5,
+      emissiveIntensity: 0.6,
+      transparent: true,
+      opacity: 0.65
+    });
+    const barMesh = new THREE.Mesh(new THREE.BoxGeometry(0.25, 4.8, 5.0), barMat);
+    barMesh.position.set(0, 2.4, 0);
+    barrierGroup.add(barMesh);
+
+    scene.add(barrierGroup);
+    Game.cryptBarrierMesh = barrierGroup;
   }
 
   // Add Dynamic Torchlight
@@ -818,7 +1097,7 @@ import * as THREE from './lib/three.module.js';
     });
   }
 
-  // --- CELESTIAL CRYSTAL & TORCH FLICKER ---
+  // --- CELESTIAL CRYSTAL, TORCHES, WATER & RUNIC PEDESTALS ---
   function updateEnvironment(delta) {
     // Spin celestial crystal
     if (Game.relicCrystal) {
@@ -831,6 +1110,30 @@ import * as THREE from './lib/three.module.js';
     const t = Date.now() / 120;
     Game.torches.forEach(({ light, baseIntensity, flickerOffset }) => {
       light.intensity = baseIntensity + Math.sin(t + flickerOffset) * 0.35 + (Math.random() - 0.5) * 0.15;
+    });
+
+    // Mistveil Canal Water ripple animation
+    if (Game.waterMesh && Game.waterMesh.material) {
+      Game.waterMesh.material.opacity = 0.72 + Math.sin(Date.now() / 700) * 0.08;
+    }
+
+    // Crimson Fire Braziers flame flicker
+    Game.braziers.forEach(b => {
+      if (b.light) {
+        b.light.intensity = (b.baseIntensity || 2.8) + Math.sin(Date.now() / 110 + (b.x || 0)) * 0.4 + (Math.random() - 0.5) * 0.15;
+      }
+      if (b.flame) {
+        b.flame.scale.y = 1.0 + Math.sin(Date.now() / 130 + (b.z || 0)) * 0.12;
+      }
+    });
+
+    // Tri-Rune Pedestals floating crystals animation
+    Game.runicPedestals.forEach(p => {
+      if (p.rCrystal) {
+        p.rCrystal.rotation.y += delta * 1.8;
+        p.rCrystal.rotation.z += delta * 0.8;
+        p.rCrystal.position.y = 0.85 + Math.sin(Date.now() / 420 + (p.x || 0)) * 0.08;
+      }
     });
   }
 
@@ -978,6 +1281,203 @@ import * as THREE from './lib/three.module.js';
     }
   }
 
+  // --- STAGE 3 HAZARDS, ICE DYNAMICS & PUZZLE ---
+  async function recordHazardToServer(type, details) {
+    try {
+      await fetch('/api/game/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'RECORD_HAZARD',
+          type,
+          details,
+          sessionId: Game.sessionId,
+          profileId: Game.activeProfileId
+        })
+      });
+    } catch (e) {
+      // Non-blocking
+    }
+  }
+
+  function checkPlayerHazards(px, pz) {
+    // 1. Mistveil Canal Hazard (Water Crossing at z: 2.1 to 4.9, safe bridge at x: -4.8 to -0.6)
+    if (pz >= 2.1 && pz <= 4.9 && px >= -22.0 && px <= 2.0) {
+      const onSteppingStones = (px >= -4.8 && px <= -0.6);
+      if (!onSteppingStones && Game.controller) {
+        // Splash pushback onto bank
+        const pushbackZ = pz < 3.5 ? 1.7 : 5.3;
+        Game.controller.position.z = pushbackZ;
+        if (Game.playerMesh) Game.playerMesh.position.z = pushbackZ;
+        Game.controller.resetKeys();
+        playSound('splash');
+        showNotification("🌊 Splash! Mistveil Canal current sweeps you back! Use the stepping stones.");
+        if (Date.now() - Game.lastHazardTime > 3000) {
+          Game.lastHazardTime = Date.now();
+          recordHazardToServer('WATER', 'Mistveil Canal water splash pushback');
+        }
+      }
+    }
+
+    // 2. Crimson Fire Braziers Hazard (Pushback within 1.35m)
+    const brazierPositions = [
+      [-3.0, 7.0],
+      [1.0, 8.5],
+      [-2.0, 12.0]
+    ];
+    for (const [bx, bz] of brazierPositions) {
+      const dist = Math.hypot(px - bx, pz - bz);
+      if (dist < 1.35 && Game.controller) {
+        const angle = Math.atan2(pz - bz, px - bx);
+        const safeX = bx + Math.cos(angle) * 1.65;
+        const safeZ = bz + Math.sin(angle) * 1.65;
+        Game.controller.position.x = safeX;
+        Game.controller.position.z = safeZ;
+        if (Game.playerMesh) {
+          Game.playerMesh.position.x = safeX;
+          Game.playerMesh.position.z = safeZ;
+        }
+        Game.controller.resetKeys();
+        playSound('scorch');
+        showNotification("🔥 Sizzle! The Crimson Brazier scorches! Keep your distance.");
+        if (Date.now() - Game.lastHazardTime > 3000) {
+          Game.lastHazardTime = Date.now();
+          recordHazardToServer('FIRE', 'Crimson Fire Brazier scorch pushback');
+        }
+        break;
+      }
+    }
+
+    // 3. Frost Cavern Slippery Ice Dynamics (at x: 4.5 to 13.5, z: 9.5 to 18.5)
+    const onIce = (px >= 4.5 && px <= 13.5 && pz >= 9.5 && pz <= 18.5);
+    if (Game.controller) {
+      Game.controller.onIce = onIce;
+    }
+  }
+
+  // Check proximity to Tri-Rune Pedestals
+  function checkRunicPuzzle(px, pz) {
+    if (Game.puzzleSolved) return;
+    Game.runicPedestals.forEach((p) => {
+      const dist = Math.hypot(px - p.x, pz - p.z);
+      if (dist < 1.05) {
+        if (!p.isSteppedOn) {
+          p.isSteppedOn = true;
+          activateRunePedestal(p.name);
+        }
+      } else if (dist > 1.45) {
+        p.isSteppedOn = false;
+      }
+    });
+  }
+
+  // Activate Rune Pedestal (Ignis -> Glacies -> Aether)
+  async function activateRunePedestal(runeName) {
+    if (Game.puzzleSolved) return;
+    try {
+      const res = await fetch('/api/game/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'ACTIVATE_RUNE',
+          rune: runeName,
+          sessionId: Game.sessionId,
+          profileId: Game.activeProfileId
+        })
+      });
+      const data = await res.json();
+      if (!data.success) return;
+
+      if (data.puzzleSolved) {
+        Game.puzzleSolved = true;
+        Game.runesActivated = ['ignis', 'glacies', 'aether'];
+        if (Game.cryptBarrierMesh) {
+          Game.cryptBarrierMesh.visible = false;
+        }
+        Game.runicPedestals.forEach(ped => {
+          if (ped.light) ped.light.intensity = 5.0;
+          if (ped.rCrystal && ped.rCrystal.material) {
+            ped.rCrystal.material.emissiveIntensity = 1.8;
+          }
+        });
+        playSound('fanfare');
+        showNotification("✨ All 3 Runes Aligned (Ignis → Glacies → Aether)! The Crypt Barrier dissolved!");
+        if (data.trustScore !== undefined) {
+          Game.trustScore = data.trustScore;
+          Game.trustLevel = data.trustLevel || Game.trustLevel;
+        }
+        updateHUD();
+        if (window.updateInspectorPanel) window.updateInspectorPanel();
+      } else if (data.reset) {
+        Game.runesActivated = [];
+        Game.runicPedestals.forEach(ped => {
+          if (ped.light) ped.light.intensity = 2.2;
+          if (ped.rCrystal && ped.rCrystal.material) {
+            ped.rCrystal.material.emissiveIntensity = 0.7;
+          }
+        });
+        playSound('error');
+        showNotification("❌ Incorrect rune sequence! The pedestals reset. (Hint: Ignis → Glacies → Aether)");
+        updateHUD();
+        if (window.updateInspectorPanel) window.updateInspectorPanel();
+      } else {
+        Game.runesActivated = data.runesActivated || [];
+        const ped = Game.runicPedestals.find(p => p.name.toLowerCase() === runeName.toLowerCase());
+        if (ped) {
+          if (ped.light) ped.light.intensity = 4.5;
+          if (ped.rCrystal && ped.rCrystal.material) {
+            ped.rCrystal.material.emissiveIntensity = 1.5;
+          }
+        }
+        playSound('chime');
+        showNotification(`⚡ Rune of ${runeName.toUpperCase()} Awakened! (${Game.runesActivated.length}/3)`);
+        updateHUD();
+        if (window.updateInspectorPanel) window.updateInspectorPanel();
+      }
+    } catch (err) {
+      console.error("Failed to activate rune:", err);
+    }
+  }
+
+  // Zone Tracking
+  let lastZoneUpdate = 0;
+  function updateZoneTracking(px, pz) {
+    let zone = "Courtyard of the Gate";
+    if (px < 4 && pz >= 2.0 && pz <= 5.0) {
+      zone = "Mistveil Canal";
+    } else if (px < 4 && pz > 5.0) {
+      zone = "Crimson Brazier Pass";
+    } else if (px >= 4.0 && px <= 14.0 && pz >= 8.0) {
+      zone = "Frost Cavern & Runes";
+    } else if (px > 14.0 && pz >= 8.0) {
+      zone = "Haunted Crypt";
+    } else if (px >= 4.0 && pz < 8.0) {
+      zone = "Celestial Sanctuary";
+    }
+
+    if (zone !== Game.currentZone) {
+      Game.currentZone = zone;
+      const zoneBadge = document.getElementById('hudCurrentZone');
+      if (zoneBadge) zoneBadge.textContent = zone;
+      const inspectorZone = document.getElementById('inspectorCurrentZone');
+      if (inspectorZone) inspectorZone.textContent = zone;
+
+      if (Date.now() - lastZoneUpdate > 1500) {
+        lastZoneUpdate = Date.now();
+        fetch('/api/game/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'UPDATE_ZONE',
+            zone,
+            sessionId: Game.sessionId,
+            profileId: Game.activeProfileId
+          })
+        }).catch(() => {});
+      }
+    }
+  }
+
   // --- DIALOGUE UI INTERFACE ---
   function openDialogue() {
     Game.dialogueOpen = true;
@@ -1053,13 +1553,24 @@ import * as THREE from './lib/three.module.js';
       questBadge.className = `status-tag ${badgeClass}`;
     }
 
-    if (itemSlot) {
+      if (itemSlot) {
       if (Game.hasTreasure) {
         itemSlot.innerHTML = `<span class="inv-item" title="Amulet of the Sunken Veil">🔮 Amulet of the Veil</span>`;
       } else {
         itemSlot.innerHTML = `<span class="inv-empty">(Empty)</span>`;
       }
     }
+
+    // Stage 3 Trust Score & Zone HUD synchronization
+    const trustElem = document.getElementById('hudTrustScore');
+    const trustBadge = document.getElementById('hudTrustLevel');
+    const zoneElem = document.getElementById('hudCurrentZone');
+    if (trustElem) trustElem.textContent = `${Game.trustScore}/100`;
+    if (trustBadge) {
+      trustBadge.textContent = Game.trustLevel;
+      trustBadge.className = `status-tag badge-trust-${(Game.trustLevel || 'neutral').toLowerCase()}`;
+    }
+    if (zoneElem) zoneElem.textContent = Game.currentZone;
   }
 
   // Reset Game Demo (for judges)
@@ -1068,13 +1579,14 @@ import * as THREE from './lib/three.module.js';
       const res = await fetch('/api/game/action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'RESET_GAME', sessionId: Game.sessionId })
+        body: JSON.stringify({ action: 'RESET_GAME', sessionId: Game.sessionId, profileId: Game.activeProfileId })
       });
       const data = await res.json();
       if (data.success) {
         // Reset player 3D position
         if (Game.controller) {
           Game.controller.position = { x: -10, y: 0, z: 0 };
+          Game.controller.onIce = false;
           Game.controller.resetKeys();
         }
         if (Game.playerMesh) {
@@ -1112,10 +1624,29 @@ import * as THREE from './lib/three.module.js';
         Game.xp = 0;
         Game.rewardClaimed = false;
 
+        // Reset Stage 3 Puzzle & Runes
+        Game.puzzleSolved = false;
+        Game.runesActivated = [];
+        if (Game.cryptBarrierMesh) {
+          Game.cryptBarrierMesh.visible = true;
+        }
+        Game.runicPedestals.forEach(p => {
+          p.isSteppedOn = false;
+          if (p.light) p.light.intensity = 2.2;
+          if (p.rCrystal && p.rCrystal.material) {
+            p.rCrystal.material.emissiveIntensity = 0.7;
+          }
+        });
+        Game.currentZone = 'Courtyard of the Gate';
+
         closeDialogue();
         updateHUD();
         showNotification("↺ Demo Reset: Pristine 3D state restored for judges!");
         playSound('chirp');
+
+        if (window.updateInspectorPanel) {
+          window.updateInspectorPanel();
+        }
 
         if (window.resetDialogueUI) {
           window.resetDialogueUI(data.greeting);
@@ -1253,6 +1784,11 @@ import * as THREE from './lib/three.module.js';
           if (Game.playerLegL) Game.playerLegL.rotation.x = 0;
           if (Game.playerLegR) Game.playerLegR.rotation.x = 0;
         }
+
+        // Check Stage 3 environmental hazards, rune puzzle & zone tracking
+        checkPlayerHazards(Game.controller.position.x, Game.controller.position.z);
+        checkRunicPuzzle(Game.controller.position.x, Game.controller.position.z);
+        updateZoneTracking(Game.controller.position.x, Game.controller.position.z);
 
         // Smooth camera following (Third-person chase camera)
         const targetCamX = Game.playerMesh.position.x + Game.cameraOffset.x;
@@ -1409,6 +1945,43 @@ import * as THREE from './lib/three.module.js';
     setMaayaThinking: (thinking) => {
       Game.maayaState = thinking ? 'THINKING' : (Game.dialogueOpen ? 'TALKING' : 'IDLE');
     },
+    selectProfile: async (profileId) => {
+      try {
+        const res = await fetch('/api/profile/select', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profileId, sessionId: Game.sessionId })
+        });
+        const data = await res.json();
+        if (data.success && data.profile) {
+          Game.activeProfileId = data.profile.id;
+          Game.trustScore = data.profile.trustScore;
+          Game.trustLevel = data.profile.trustLevel;
+          updateHUD();
+          showNotification(`Switched Profile: ${data.profile.name} (${data.profile.trustLevel} • ${data.profile.trustScore}/100)`);
+          playSound('chirp');
+          if (window.updateInspectorPanel) window.updateInspectorPanel(data);
+          if (window.resetDialogueUI) window.resetDialogueUI(data.greeting);
+          return data;
+        }
+      } catch (e) {
+        console.error("Failed to select profile:", e);
+      }
+    },
+    getGameState: () => ({
+      questStatus: Game.questStatus,
+      hasTreasure: Game.hasTreasure,
+      gateState: Game.gateState,
+      gold: Game.gold,
+      xp: Game.xp,
+      puzzleSolved: Game.puzzleSolved,
+      runesActivated: Game.runesActivated,
+      currentZone: Game.currentZone,
+      activeProfileId: Game.activeProfileId,
+      trustScore: Game.trustScore,
+      trustLevel: Game.trustLevel
+    }),
+    activateRune: (runeName) => activateRunePedestal(runeName),
     syncServerState: (state) => {
       if (!state) return;
       Game.questStatus = state.questStatus;
@@ -1416,6 +1989,25 @@ import * as THREE from './lib/three.module.js';
       Game.gold = state.gold;
       Game.xp = state.xp;
       Game.rewardClaimed = state.rewardClaimed;
+
+      if (state.trustScore !== undefined) {
+        Game.trustScore = state.trustScore;
+      }
+      if (state.trustLevel) {
+        Game.trustLevel = state.trustLevel;
+      }
+      if (state.puzzleSolved !== undefined) {
+        Game.puzzleSolved = state.puzzleSolved;
+        if (Game.puzzleSolved && Game.cryptBarrierMesh) {
+          Game.cryptBarrierMesh.visible = false;
+        }
+      }
+      if (state.runesActivated) {
+        Game.runesActivated = state.runesActivated;
+      }
+      if (state.currentZone) {
+        Game.currentZone = state.currentZone;
+      }
 
       if (state.gateState === 'OPEN') {
         Game.gateState = 'OPEN';
@@ -1430,6 +2022,7 @@ import * as THREE from './lib/three.module.js';
         if (Game.chestLockLight) Game.chestLockLight.color.setHex(0x38bdf8);
       }
       updateHUD();
+      if (window.updateInspectorPanel) window.updateInspectorPanel();
     }
   };
 

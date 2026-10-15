@@ -20,6 +20,7 @@ const statusPill = document.getElementById("statusPill");
 let sessionId = sessionStorage.getItem("cognitive_npc_session_id") || null;
 let isSubmitting = false;
 let turnCount = 0;
+let activeProfileId = sessionStorage.getItem("cognitive_npc_profile_id") || "player1";
 
 // Format timestamp helper
 function getTimestamp() {
@@ -213,7 +214,8 @@ async function sendMessage(textToSend) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message: text,
-        sessionId: sessionId
+        sessionId: sessionId,
+        profileId: activeProfileId
       })
     });
 
@@ -231,6 +233,11 @@ async function sendMessage(textToSend) {
     // Add NPC response with dynamic typewriter rendering
     appendMessage("npc", data.reply, true);
 
+    // Update Profile and Trust UI
+    if (data.profile) {
+      updateProfileUI(data.profile);
+    }
+
     // Synchronize and execute validated game actions
     if (window.MaayaGame) {
       if (data.gameState) {
@@ -247,8 +254,18 @@ async function sendMessage(textToSend) {
         } else if (actionType === "RETURN_TREASURE") {
           window.MaayaGame.showNotification("✦ Sacred Amulet presented to MAAYA! The seal may now be opened.");
           window.MaayaGame.playSound("fanfare");
+        } else if (actionType === "CONFIDE_FEAR") {
+          window.MaayaGame.showNotification("✦ Confided fears to MAAYA: +3 Trust! Her tone softens with empathy.");
+          window.MaayaGame.playSound("chime");
+        } else if (actionType === "RECORD_HAZARD") {
+          window.MaayaGame.showNotification("✦ Hazard noted by MAAYA in memory.");
         }
       }
+    }
+
+    // Refresh Inspector
+    if (window.updateInspectorPanel) {
+      window.updateInspectorPanel();
     }
 
     // Reflect fallback or live Gemini AI status on the UI indicator
@@ -308,6 +325,199 @@ promptChips.forEach((chip) => {
   });
 });
 
+// --- STAGE 3: PROFILE SWITCHING, DYNAMIC TRUST & INSPECTOR PANEL ---
+function updateProfileUI(profile) {
+  if (!profile) return;
+  activeProfileId = profile.id;
+  sessionStorage.setItem("cognitive_npc_profile_id", activeProfileId);
+
+  // Update profile buttons in top header
+  document.querySelectorAll(".btn-profile").forEach(btn => {
+    btn.classList.toggle("active", btn.getAttribute("data-profile-id") === profile.id);
+  });
+
+  // Update HUD elements
+  const hudBadge = document.getElementById("hudProfileBadge");
+  const hudTrustScore = document.getElementById("hudTrustScore");
+  const hudTrustLevel = document.getElementById("hudTrustLevel");
+  const dialogueTrustLabel = document.getElementById("dialogueTrustLabel");
+
+  if (hudBadge) hudBadge.textContent = `${profile.name} (${profile.archetype})`;
+  if (hudTrustScore) hudTrustScore.textContent = `${profile.trustScore}/100`;
+  if (hudTrustLevel) {
+    hudTrustLevel.textContent = profile.trustLevel;
+    hudTrustLevel.className = `status-tag badge-trust-${(profile.trustLevel || 'neutral').toLowerCase()}`;
+  }
+  if (dialogueTrustLabel) {
+    dialogueTrustLabel.textContent = `${profile.trustLevel} (${profile.trustScore}/100)`;
+  }
+}
+
+async function selectProfile(profileId) {
+  if (isSubmitting) return;
+  activeProfileId = profileId;
+  sessionStorage.setItem("cognitive_npc_profile_id", profileId);
+
+  document.querySelectorAll(".btn-profile").forEach(btn => {
+    btn.classList.toggle("active", btn.getAttribute("data-profile-id") === profileId);
+  });
+
+  if (window.MaayaGame && window.MaayaGame.selectProfile) {
+    const data = await window.MaayaGame.selectProfile(profileId);
+    if (data && data.profile) {
+      updateProfileUI(data.profile);
+    }
+  } else {
+    try {
+      const res = await fetch("/api/profile/select", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profileId, sessionId })
+      });
+      const data = await res.json();
+      if (data.profile) {
+        updateProfileUI(data.profile);
+        window.resetDialogueUI(data.greeting);
+      }
+    } catch (e) {
+      console.error("Profile selection failed:", e);
+    }
+  }
+  window.updateInspectorPanel();
+}
+
+async function resetActiveProfile() {
+  const confirmed = confirm("Reset active profile memory, trust, and interactions back to pristine default?");
+  if (!confirmed) return;
+  try {
+    const res = await fetch("/api/profile/reset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profileId: activeProfileId, sessionId })
+    });
+    const data = await res.json();
+    if (data.success && data.profile) {
+      updateProfileUI(data.profile);
+      window.resetDialogueUI(data.greeting);
+      if (window.MaayaGame && window.MaayaGame.showNotification) {
+        window.MaayaGame.showNotification(`↺ Reset Profile ${data.profile.name} to default state.`);
+      }
+      window.updateInspectorPanel();
+    }
+  } catch (e) {
+    console.error("Failed to reset profile:", e);
+  }
+}
+
+function toggleInspector(open) {
+  const drawer = document.getElementById("inspectorDrawer");
+  if (!drawer) return;
+  if (open === undefined) {
+    drawer.classList.toggle("open");
+  } else if (open) {
+    drawer.classList.add("open");
+  } else {
+    drawer.classList.remove("open");
+  }
+  if (drawer.classList.contains("open")) {
+    window.updateInspectorPanel();
+  }
+}
+
+window.updateInspectorPanel = async function () {
+  try {
+    const res = await fetch("/api/profiles");
+    if (!res.ok) return;
+    const data = await res.json();
+    const active = data.profiles ? data.profiles[data.activeProfileId || activeProfileId] : null;
+
+    if (active) {
+      updateProfileUI(active);
+
+      // Inspector Profile & Trust
+      const inspBadge = document.getElementById("inspectorProfileBadge");
+      const inspName = document.getElementById("inspectorProfileName");
+      const inspArchetype = document.getElementById("inspectorProfileArchetype");
+      const inspScoreText = document.getElementById("inspectorTrustScoreText");
+      const inspFill = document.getElementById("inspectorTrustFill");
+
+      if (inspBadge) {
+        inspBadge.textContent = `${active.trustLevel} (${active.trustScore}/100)`;
+        inspBadge.className = `status-tag badge-trust-${(active.trustLevel || 'neutral').toLowerCase()}`;
+      }
+      if (inspName) inspName.textContent = active.name;
+      if (inspArchetype) inspArchetype.textContent = active.archetype;
+      if (inspScoreText) inspScoreText.textContent = `${active.trustScore} / 100`;
+      if (inspFill) {
+        inspFill.style.width = `${Math.max(0, Math.min(100, active.trustScore))}%`;
+        inspFill.className = `trust-meter-fill fill-${(active.trustLevel || 'neutral').toLowerCase()}`;
+      }
+
+      // Memory Logs
+      const memList = document.getElementById("inspectorMemoriesList");
+      const memCount = document.getElementById("inspectorMemoryCount");
+      if (memCount) memCount.textContent = `${(active.memories || []).length} Stored`;
+
+      if (memList && active.memories) {
+        memList.innerHTML = active.memories.slice().reverse().map(m => {
+          const typeClass = (m.type || 'event').toLowerCase();
+          const d = new Date(m.timestamp);
+          const timeStr = !isNaN(d) ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
+          return `
+            <div class="memory-log-card">
+              <div class="mem-meta">
+                <span class="mem-tag mem-tag-${typeClass}">[${m.type || 'EVENT'}]</span>
+                <span class="mem-time">${timeStr}</span>
+              </div>
+              <div class="mem-content">${m.content || m.summary || ''}</div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // Puzzle & Game State
+    const gameState = window.MaayaGame && window.MaayaGame.getGameState ? window.MaayaGame.getGameState() : null;
+    if (gameState) {
+      const runes = gameState.runesActivated || [];
+      const ignisPill = document.getElementById("runePillIgnis");
+      const glaciesPill = document.getElementById("runePillGlacies");
+      const aetherPill = document.getElementById("runePillAether");
+      const barrierBadge = document.getElementById("inspectorBarrierBadge");
+
+      if (ignisPill) {
+        const has = runes.includes("ignis");
+        ignisPill.textContent = has ? "Awakened (1)" : "Inactive";
+        ignisPill.className = `rune-pill ${has ? 'active' : ''}`;
+      }
+      if (glaciesPill) {
+        const has = runes.includes("glacies");
+        glaciesPill.textContent = has ? "Awakened (2)" : "Inactive";
+        glaciesPill.className = `rune-pill ${has ? 'active' : ''}`;
+      }
+      if (aetherPill) {
+        const has = runes.includes("aether");
+        aetherPill.textContent = has ? "Awakened (3)" : "Inactive";
+        aetherPill.className = `rune-pill ${has ? 'active' : ''}`;
+      }
+      if (barrierBadge) {
+        if (gameState.puzzleSolved) {
+          barrierBadge.textContent = "Barrier Dissolved";
+          barrierBadge.className = "status-tag badge-completed";
+        } else {
+          barrierBadge.textContent = "Barrier Locked";
+          barrierBadge.className = "status-tag badge-alert";
+        }
+      }
+
+      const inspZone = document.getElementById("inspectorCurrentZone");
+      if (inspZone) inspZone.textContent = gameState.currentZone || "Courtyard of the Gate";
+    }
+  } catch (err) {
+    console.warn("Inspector sync error:", err);
+  }
+};
+
 // Check Server Health on Load and detect when API becomes available again
 async function checkHealth() {
   try {
@@ -339,11 +549,37 @@ function init() {
     sessionStorage.setItem("cognitive_npc_session_id", sessionId);
   }
 
+  // Bind profile switcher buttons
+  document.querySelectorAll(".btn-profile").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const pid = btn.getAttribute("data-profile-id");
+      if (pid) selectProfile(pid);
+    });
+  });
+
+  // Bind Inspector toggle buttons
+  const toggleInspectorBtn = document.getElementById("toggleInspectorBtn");
+  const closeInspectorBtn = document.getElementById("closeInspectorBtn");
+  if (toggleInspectorBtn) toggleInspectorBtn.addEventListener("click", () => toggleInspector());
+  if (closeInspectorBtn) closeInspectorBtn.addEventListener("click", () => toggleInspector(false));
+
+  const resetActiveProfileBtn = document.getElementById("resetActiveProfileBtn");
+  if (resetActiveProfileBtn) resetActiveProfileBtn.addEventListener("click", resetActiveProfile);
+
   window.resetDialogueUI(INITIAL_GREETING);
   checkHealth();
 
   // Periodic health check to seamlessly detect when Gemini recovers without restarting
   setInterval(checkHealth, 25000);
+
+  // Initial fetch of profiles to sync UI
+  fetch("/api/profiles").then(r => r.json()).then(data => {
+    if (data.profiles && data.activeProfileId) {
+      activeProfileId = data.activeProfileId;
+      updateProfileUI(data.profiles[activeProfileId]);
+      window.updateInspectorPanel();
+    }
+  }).catch(() => {});
 
   // Start 2D / 3D Game Engine
   if (window.initGameEngine) {

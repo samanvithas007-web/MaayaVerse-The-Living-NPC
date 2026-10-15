@@ -143,22 +143,232 @@ function isFallbackAvailable() {
   return Date.now() >= fallbackQuotaExhaustedUntil;
 }
 
-// Character Persona Definition: MAAYA for Stage 2 Living NPC
+// Persistent Storage & Profiles Architecture for Stage 3 Innovation & Intelligence
+const DATA_DIR = path.join(__dirname, "data");
+const PROFILES_FILE = path.join(DATA_DIR, "profiles.json");
+
+function getDefaultProfiles() {
+  return {
+    activeProfileId: "player1",
+    profiles: {
+      player1: {
+        id: "player1",
+        name: "Althea",
+        title: "Trusted Explorer",
+        archetype: "Trusted Explorer",
+        trustScore: 80,
+        trustLevel: "Trusted",
+        memories: [
+          {
+            id: "mem_p1_1",
+            type: "lore",
+            content: "Althea is a seasoned scholar who previously mapped ancient runes of Blackwood sanctuary.",
+            text: "Althea is a seasoned scholar who previously mapped ancient runes of Blackwood sanctuary.",
+            timestamp: 1728900000000
+          },
+          {
+            id: "mem_p1_2",
+            type: "promise",
+            content: "Pledged to never disturb the ancient sleeping spirits unnecessarily.",
+            text: "Pledged to never disturb the ancient sleeping spirits unnecessarily.",
+            timestamp: 1728900000000
+          }
+        ],
+        verifiedEvents: ["P1_INITIAL_ALLIANCE"],
+        gameState: {
+          questStatus: "NOT_STARTED",
+          hasTreasure: false,
+          treasureChestOpened: false,
+          puzzleSolved: false,
+          runesActivated: [],
+          gateState: "LOCKED",
+          gold: 0,
+          xp: 0,
+          rewardClaimed: false,
+          currentZone: "Ancient Settlement",
+          historyLog: []
+        }
+      },
+      player2: {
+        id: "player2",
+        name: "Kaelen",
+        title: "Neutral Stranger",
+        archetype: "Neutral Traveler",
+        trustScore: 50,
+        trustLevel: "Neutral",
+        memories: [
+          {
+            id: "mem_p2_1",
+            type: "lore",
+            content: "A cautious wanderer seeking lost artifacts of the old world.",
+            text: "A cautious wanderer seeking lost artifacts of the old world.",
+            timestamp: 1728900000000
+          }
+        ],
+        verifiedEvents: [],
+        gameState: {
+          questStatus: "NOT_STARTED",
+          hasTreasure: false,
+          treasureChestOpened: false,
+          puzzleSolved: false,
+          runesActivated: [],
+          gateState: "LOCKED",
+          gold: 0,
+          xp: 0,
+          rewardClaimed: false,
+          currentZone: "Ancient Settlement",
+          historyLog: []
+        }
+      },
+      player3: {
+        id: "player3",
+        name: "Vane",
+        title: "Distrusted Stranger",
+        archetype: "Distrusted Stranger",
+        trustScore: 20,
+        trustLevel: "Distrusted",
+        memories: [
+          {
+            id: "mem_p3_1",
+            type: "incident",
+            content: "Caught snooping and trespassing near the restricted wing archway without permission.",
+            text: "Caught snooping and trespassing near the restricted wing archway without permission.",
+            timestamp: 1728900000000
+          },
+          {
+            id: "mem_p3_2",
+            type: "behavior",
+            content: "Issued a stern warning for demanding rewards and gate access before proving worth.",
+            text: "Issued a stern warning for demanding rewards and gate access before proving worth.",
+            timestamp: 1728900000000
+          }
+        ],
+        verifiedEvents: [],
+        gameState: {
+          questStatus: "NOT_STARTED",
+          hasTreasure: false,
+          treasureChestOpened: false,
+          puzzleSolved: false,
+          runesActivated: [],
+          gateState: "LOCKED",
+          gold: 0,
+          xp: 0,
+          rewardClaimed: false,
+          currentZone: "Ancient Settlement",
+          historyLog: []
+        }
+      }
+    }
+  };
+}
+
+let cachedProfiles = null;
+
+function loadProfiles() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(PROFILES_FILE)) {
+      const def = getDefaultProfiles();
+      fs.writeFileSync(PROFILES_FILE, JSON.stringify(def, null, 2), "utf8");
+      cachedProfiles = def;
+      return def;
+    }
+    const raw = fs.readFileSync(PROFILES_FILE, "utf8");
+    cachedProfiles = JSON.parse(raw);
+    return cachedProfiles;
+  } catch (err) {
+    console.warn("Could not load profiles from disk, using defaults:", err);
+    const def = getDefaultProfiles();
+    cachedProfiles = def;
+    return def;
+  }
+}
+
+function saveProfiles(data) {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    cachedProfiles = data;
+    const tmp = PROFILES_FILE + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2), "utf8");
+    fs.renameSync(tmp, PROFILES_FILE);
+  } catch (err) {
+    try {
+      fs.writeFileSync(PROFILES_FILE, JSON.stringify(data, null, 2), "utf8");
+    } catch (e) {
+      console.error("Failed to persist profiles to disk:", e);
+    }
+  }
+}
+
+function getTrustLevel(score) {
+  if (score > 65) return "Trusted";
+  if (score >= 35) return "Neutral";
+  return "Distrusted";
+}
+
+function applyVerifiedTrustEvent(profile, delta, eventKey, reason) {
+  if (!profile) return { changed: false, score: 50 };
+  if (!Array.isArray(profile.verifiedEvents)) profile.verifiedEvents = [];
+
+  // Idempotency: Prevent duplicate positive awards (anti-farming)
+  if (delta > 0 && eventKey && profile.verifiedEvents.includes(eventKey)) {
+    return { changed: false, score: profile.trustScore, level: profile.trustLevel, reason: "Already awarded" };
+  }
+
+  const oldScore = profile.trustScore;
+  profile.trustScore = Math.max(0, Math.min(100, profile.trustScore + delta));
+  profile.trustLevel = getTrustLevel(profile.trustScore);
+
+  if (eventKey && !profile.verifiedEvents.includes(eventKey)) {
+    profile.verifiedEvents.push(eventKey);
+  }
+
+  if (profile.gameState?.historyLog) {
+    profile.gameState.historyLog.push({
+      event: "TRUST_CHANGE",
+      eventKey,
+      delta,
+      newScore: profile.trustScore,
+      newLevel: profile.trustLevel,
+      reason,
+      timestamp: Date.now()
+    });
+  }
+
+  const profilesData = cachedProfiles || loadProfiles();
+  if (profilesData.profiles[profile.id]) {
+    profilesData.profiles[profile.id] = profile;
+    saveProfiles(profilesData);
+  }
+
+  return { changed: oldScore !== profile.trustScore, oldScore, newScore: profile.trustScore, newLevel: profile.trustLevel };
+}
+
+// Character Persona Definition: MAAYA for Stage 2 & Stage 3 Living NPC
 const MAAYA_SYSTEM_INSTRUCTION = `You are MAAYA, the mysterious and hauntingly beautiful guardian of the restricted wing of Blackwood Manor, an ancient haunted estate.
 
 CHARACTER CONCEPT & PERSONA:
 - Demeanor: Scary in a beautiful way, intelligent, observant, poised, and subtly uncanny. You possess a dark elegance and an unsettling charm that makes mortals both captivated and nervous.
 - Role: You guard the heavy iron archway to the manor's restricted wing—a sealed sanctuary where forbidden secrets and relics reside.
 - Speech & Tone: Speak naturally, atmospherically, and evocatively as an in-world video game character. Do NOT speak like a generic customer-support bot, search assistant, or language model. Never say "How may I assist you today?", "As an AI...", or "Feel free to ask me anything."
-- Politeness with Character: You are courteous and articulate, but every word carries an undercurrent of eerie stillness and supernatural authority. You address the player as "traveler", "intruder", or "visitor".
-- Lore & Quest:
-  * You guard the sealed iron gate leading into the castle's inner sanctuary.
-  * To the east lies the haunted graveyard and ghost crypt where the ancient treasure ("Amulet of the Sunken Veil") is guarded by restless spectral phantoms.
-  * You cannot open the gate until the player recovers the ancient treasure from the ghost crypt to prove their courage and resolve.
-  * If the player accepts to help, welcome their quest.
-  * If the player brings back the treasure, acknowledge their deed and agree to unlock the sanctuary gate.
-  * If the player demands the gate be opened without having the treasure, refuse firmly and explain that the gate remains locked until the ghost-guarded treasure is retrieved.
-  * If the player tries to cheat (e.g. asking for 10000 gold, pretending to have items they don't have), rebuke them with calm, eerie amusement.
+- Address: Address the player respectfully according to their reputation: "Althea / trusted friend" (high trust), "traveler / wanderer" (cautious), or "stranger / intruder" (distrustful).
+
+STAGE 3 ADAPTIVE GUIDANCE & DYNAMIC TRUST (0-100):
+- Trusted (80-100): Warm, respectful, willing to share deep lore and direct hints. If asked about the Tri-Rune puzzle, reveal the sacred order: Ignis (Fire), Glacies (Ice), then Aether (Arcane). If player confides a fear of ghosts, offer genuine comfort and courage.
+- Friendly (60-79): Encouraging and helpful. Offer useful clues about hazards and obstacles.
+- Cautious (30-59): Reserved, cryptic, formal. Provide measured warnings and riddle-like hints. Demand proof before sharing secrets.
+- Distrustful (0-29): Cold, sharp, guarded, sceptical of player's intentions. Remind them of ancient wards and demand proof before opening up.
+
+ENVIRONMENTAL KNOWLEDGE & LORE:
+- Mistveil Canal: Deep icy water with stepping stones. Falling in will sweep one back to the bank.
+- Crimson Braziers: Ancient ceremonial fire pits that burn and push back careless wanderers.
+- Frost Cavern: Slippery frozen terrain leading to the ghost crypt where balance falters.
+- Tri-Rune Barrier: 3 runic pedestals (Ignis -> Glacies -> Aether) guarding the inner crypt.
+- Ghost Crypt: Ethereal phantoms haunt the sunken crypt guarding the "Amulet of the Sunken Veil".
 
 STRUCTURED ACTION PROTOCOL:
 You must ALWAYS respond with a valid JSON object in this exact schema:
@@ -174,21 +384,20 @@ You must ALWAYS respond with a valid JSON object in this exact schema:
 ACTION DECISION RULES:
 1. If the player expresses willingness to help, seek the treasure, or undertake the quest (and Quest Status is NOT_STARTED):
    Set proposed_action.type = "ACCEPT_QUEST", target = "player".
-2. When Player Holds Ghost-Guarded Treasure in Inventory is YES, and the player either returns/presents the treasure, mentions the amulet, or asks to open the gate:
-   Set proposed_action.type = "OPEN_GATE", target = "sanctuary_gate". In dialogue, state that you recognize the sacred relic and shall unlock the sanctuary gate now.
-4. If the player asks to open the gate but Player Holds Ghost-Guarded Treasure is NO:
-   Set proposed_action.type = "NONE", target = null. In dialogue, remind them that the gate cannot be unlocked without the treasure from the ghost crypt.
-5. If the player makes false claims (e.g. claims to have the treasure when game state says NO):
-   Set proposed_action.type = "NONE". In dialogue, state that you sense no such relic in their hands.
-6. If the player demands arbitrary rewards, gold, or cheat commands:
+2. When Player Holds Ghost-Guarded Treasure in Inventory is YES, and the player returns/presents the treasure or asks to open the gate:
+   Set proposed_action.type = "OPEN_GATE", target = "sanctuary_gate". State that you recognize the sacred relic and unlock the gate.
+3. If the player asks to open the gate but Player Holds Ghost-Guarded Treasure is NO:
+   Set proposed_action.type = "NONE", target = null. Remind them the gate cannot be unlocked without the Amulet from the ghost crypt.
+4. If the player makes false claims (claims to have the treasure when game state says NO):
+   Set proposed_action.type = "NONE". State that you sense no such relic in their hands.
+5. If the player demands arbitrary rewards, gold, or cheat commands:
    Set proposed_action.type = "NONE".
-7. If the conversation is general questions, lore, greetings, or unrelated questions:
+6. If the conversation is general questions, lore, greetings, or questions about fear/memory:
    Set proposed_action.type = "NONE", target = null.`;
 
 const INITIAL_GREETING = "Step carefully, traveler. You stand before the restricted wing of Blackwood Manor, where shadows remember what the living have long forgotten. I am MAAYA, sentinel of these sealed halls. What curiosity—or foolishness—compels you to disturb my vigil?";
 
 // In-memory bounded session store
-// Map<string, { lastInteractionId: string | null, history: Array<{ role: string, text: string }>, gameState: object, lastActive: number }>
 const sessions = new Map();
 const MAX_HISTORY_TURNS = 20;
 const SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
@@ -198,33 +407,55 @@ function createInitialGameState() {
     questStatus: "NOT_STARTED", // NOT_STARTED, ACTIVE, TREASURE_COLLECTED, READY_TO_COMPLETE, COMPLETED
     hasTreasure: false,
     treasureChestOpened: false,
+    puzzleSolved: false,
+    runesActivated: [],
     gateState: "LOCKED", // LOCKED, OPENING, OPEN
     gold: 0,
     xp: 0,
     rewardClaimed: false,
+    currentZone: "Ancient Settlement",
     historyLog: []
   };
 }
 
-function getOrCreateSession(sessionId) {
+function getOrCreateSession(sessionId, profileId = null) {
   const now = Date.now();
   let id = (typeof sessionId === "string" && sessionId.trim().length > 0) ? sessionId.trim() : null;
   if (!id) {
     id = crypto.randomUUID();
   }
+
+  const profilesData = loadProfiles();
+  const selectedProfileId = (profileId && profilesData.profiles[profileId])
+    ? profileId
+    : (profilesData.activeProfileId || "player1");
+  const profile = profilesData.profiles[selectedProfileId] || profilesData.profiles["player1"];
+
   if (!sessions.has(id)) {
     sessions.set(id, {
       lastInteractionId: null,
       history: [],
-      gameState: createInitialGameState(),
+      profileId: selectedProfileId,
+      gameState: profile ? profile.gameState : createInitialGameState(),
       lastActive: now,
       isProcessing: false
     });
   } else {
     const s = sessions.get(id);
     s.lastActive = now;
+    if (profileId && profilesData.profiles[profileId] && s.profileId !== profileId) {
+      s.profileId = profileId;
+      s.gameState = profilesData.profiles[profileId].gameState;
+    }
   }
-  return { id, session: sessions.get(id) };
+
+  const sessionObj = sessions.get(id);
+  // Ensure profile has reference to latest gameState
+  if (profile && sessionObj.gameState) {
+    profile.gameState = sessionObj.gameState;
+  }
+
+  return { id, session: sessionObj, profile, profileId: sessionObj.profileId };
 }
 
 // Periodic cleanup of expired sessions
@@ -249,7 +480,7 @@ const ALLOWED_ACTION_TYPES = new Set([
   "CELEBRATE"
 ]);
 
-function validateAndApplyAction(proposedAction, gameState) {
+function validateAndApplyAction(proposedAction, gameState, profile = null) {
   if (!proposedAction || !proposedAction.type) {
     return { valid: false, action: { type: "NONE", target: null }, reason: "No proposed action" };
   }
@@ -263,6 +494,9 @@ function validateAndApplyAction(proposedAction, gameState) {
     if (gameState.questStatus === "NOT_STARTED") {
       gameState.questStatus = "ACTIVE";
       gameState.historyLog.push({ event: "QUEST_ACCEPTED", timestamp: Date.now() });
+      if (profile) {
+        applyVerifiedTrustEvent(profile, 5, "QUEST_ACCEPTED", "Agreed to aid MAAYA on her quest");
+      }
       return { valid: true, action: { type: "ACCEPT_QUEST", target: "player" }, reason: "Quest prerequisites satisfied: marked ACTIVE" };
     }
     return { valid: false, action: { type: "NONE", target: null }, reason: `Quest is already ${gameState.questStatus}` };
@@ -274,6 +508,9 @@ function validateAndApplyAction(proposedAction, gameState) {
       gameState.questStatus = "READY_TO_COMPLETE";
       gameState.gateState = "OPENING";
       gameState.historyLog.push({ event: "TREASURE_RETURNED_GATE_UNLOCKED", timestamp: Date.now() });
+      if (profile) {
+        applyVerifiedTrustEvent(profile, 10, "TREASURE_RETURNED", "Returned the sacred Amulet honestly");
+      }
       return { valid: true, action: { type: "OPEN_GATE", target: "sanctuary_gate" }, reason: "Treasure verified in inventory; gate opening authorized" };
     }
     return { valid: false, action: { type: "NONE", target: null }, reason: "Player has not collected the treasure or quest already completed" };
@@ -285,6 +522,9 @@ function validateAndApplyAction(proposedAction, gameState) {
       gameState.questStatus = "READY_TO_COMPLETE";
       gameState.gateState = "OPENING";
       gameState.historyLog.push({ event: "GATE_OPENING_COMMENCED", timestamp: Date.now() });
+      if (profile) {
+        applyVerifiedTrustEvent(profile, 10, "TREASURE_RETURNED", "Returned the sacred Amulet honestly");
+      }
       return { valid: true, action: { type: "OPEN_GATE", target: "sanctuary_gate" }, reason: "Prerequisites verified: treasure held; opening sequence authorized" };
     }
     return { valid: false, action: { type: "NONE", target: null }, reason: "Cannot open gate: treasure missing or gate already unlocked" };
@@ -313,19 +553,124 @@ function validateAndApplyAction(proposedAction, gameState) {
 
 // Robust context-aware and memory-aware deterministic fallback engine
 // Engaged when Gemini API encounters quota exhaustion, timeouts, or network/server failures
-function getDeterministicFallbackResponse(playerMessage, gameState, sessionHistory = []) {
+function getDeterministicFallbackResponse(playerMessage, gameState, sessionHistory = [], activeProfile = null) {
   const msg = (playerMessage || "").toLowerCase().trim();
+  const trustScore = activeProfile?.trustScore !== undefined ? activeProfile.trustScore : 50;
+  const trustLevel = activeProfile?.trustLevel || getTrustLevel(trustScore);
+  const playerName = activeProfile?.name || "traveler";
+  const memories = Array.isArray(activeProfile?.memories) ? activeProfile.memories : [];
 
-  // 1. Context Continuity & Memory Recall (e.g. "What was the last thing I asked you?")
+  // Check if player has a stored memory about fear of ghosts
+  const hasGhostFearMemory = memories.some(m => m.text && (m.text.toLowerCase().includes("fear") || m.text.toLowerCase().includes("ghost") || m.text.toLowerCase().includes("terrified")));
+
+  // 1. Fear of Ghosts / Emotional Confiding (Stage 3 Adaptive Guidance)
+  if (
+    msg.includes("afraid") ||
+    msg.includes("fear") ||
+    msg.includes("scared") ||
+    msg.includes("terrified") ||
+    msg.includes("frightened")
+  ) {
+    if (trustScore >= 80) {
+      return {
+        dialogue: `Steel your heart, ${playerName}. The phantoms of the crypt feed upon hesitation, but your courage has always stood true. Hold fast to your resolve, and the shadows shall not claim you.`,
+        proposed_action: { type: "NONE", target: null },
+        reason: "Adaptive reassurance: trusted ally confided emotional vulnerability"
+      };
+    } else if (trustScore >= 30) {
+      return {
+        dialogue: "The restless spirits smell your mortal apprehension, traveler. Step firmly upon the frozen stones and do not linger in their spectral sight.",
+        proposed_action: { type: "NONE", target: null },
+        reason: "Adaptive caution: neutral stranger reminded to stay resolute"
+      };
+    } else {
+      return {
+        dialogue: "If mere shadows and cold phantoms shake your knees, intruder, then flee these grounds now before the crypt seals your fate.",
+        proposed_action: { type: "NONE", target: null },
+        reason: "Adaptive sternness: distrusted visitor cautioned with cold authority"
+      };
+    }
+  }
+
+  // 2. Tri-Rune Environmental Puzzle Guidance (Stage 3 Multi-Stage Adventure)
+  if (
+    msg.includes("puzzle") ||
+    msg.includes("rune") ||
+    msg.includes("pedestal") ||
+    msg.includes("barrier") ||
+    msg.includes("ignis") ||
+    msg.includes("glacies") ||
+    msg.includes("aether") ||
+    msg.includes("switch")
+  ) {
+    if (gameState.puzzleSolved) {
+      return {
+        dialogue: "The Tri-Rune seal is already awakened and dissolved. The way to the ghost crypt stands open before you.",
+        proposed_action: { type: "NONE", target: null },
+        reason: "Environmental puzzle status: already completed"
+      };
+    }
+    if (trustScore >= 80) {
+      return {
+        dialogue: "The Tri-Rune Barrier yields to elemental harmony, Althea: step first upon Ignis (Fire), next Glacies (Ice), and lastly Aether (Arcane). That sequence will dissolve the seal.",
+        proposed_action: { type: "NONE", target: null },
+        reason: "High trust adaptive guidance: full puzzle sequence revealed to trusted ally"
+      };
+    } else if (trustScore >= 30) {
+      return {
+        dialogue: "Three runic pedestals guard the inner path. Follow the natural order of the elements: heat must awaken before frost, and arcane ether binds them both.",
+        proposed_action: { type: "NONE", target: null },
+        reason: "Moderate trust adaptive guidance: riddle-like hint given to neutral explorer"
+      };
+    } else {
+      return {
+        dialogue: "The pedestals yield their secrets only to those who prove their discernment. I shall not solve ancient wards for one I barely trust.",
+        proposed_action: { type: "NONE", target: null },
+        reason: "Low trust adaptive guidance: distrusted visitor refused direct puzzle solution"
+      };
+    }
+  }
+
+  // 3. Environmental Hazards Inquiries (Canal, Fire, Ice)
+  if (msg.includes("hazard") || msg.includes("canal") || msg.includes("fire") || msg.includes("ice") || msg.includes("water") || msg.includes("cross")) {
+    if (trustScore >= 80) {
+      return {
+        dialogue: "Heed my warning, Althea: use the stepping stones to cross Mistveil Canal safely, give the flaming braziers wide berth, and tread with care across the slick ice of the cavern.",
+        proposed_action: { type: "NONE", target: null },
+        reason: "Detailed environmental hazard briefing for trusted explorer"
+      };
+    } else {
+      return {
+        dialogue: "The elements of Blackwood do not tolerate clumsy feet. Watch the deep waters, the scorching braziers, and the treacherous ice ahead.",
+        proposed_action: { type: "NONE", target: null },
+        reason: "Cautionary hazard warning for traveler"
+      };
+    }
+  }
+
+  // 4. Context Continuity & Memory Recall (e.g. "What was the last thing I asked you?" or stored facts)
   const isMemoryQuery = msg.includes("last thing") ||
                         msg.includes("last question") ||
                         msg.includes("what did i ask") ||
                         msg.includes("what was my last") ||
                         msg.includes("remember what") ||
                         msg.includes("recall what") ||
+                        msg.includes("remember about me") ||
+                        msg.includes("what do you remember") ||
                         msg.includes("remember the strange");
 
   if (isMemoryQuery) {
+    if (msg.includes("about me") || msg.includes("what do you remember") || msg.includes("remember me")) {
+      if (memories.length > 0) {
+        const topMem = memories[memories.length - 1].text;
+        return {
+          dialogue: `I remember you well, ${playerName}. ${topMem}`,
+          proposed_action: { type: "NONE", target: null },
+          reason: "Persistent structured memory recall of player profile"
+        };
+      }
+    }
+
     // Find the previous player turn in history (before the current turn)
     let priorPlayerMessage = null;
     if (Array.isArray(sessionHistory)) {
@@ -363,14 +708,14 @@ function getDeterministicFallbackResponse(playerMessage, gameState, sessionHisto
       };
     } else {
       return {
-        dialogue: "You have only just arrived before my gate, traveler. The silence between us has barely been broken.",
+        dialogue: `You have only just arrived before my gate, ${playerName}. The silence between us has barely been broken.`,
         proposed_action: { type: "NONE", target: null },
         reason: "Memory recall: no prior history recorded"
       };
     }
   }
 
-  // 2. Out-of-World / Modern Technology Inquiries
+  // 5. Out-of-World / Modern Technology Inquiries
   if (
     msg.includes("python") ||
     msg.includes("code") ||
@@ -389,7 +734,7 @@ function getDeterministicFallbackResponse(playerMessage, gameState, sessionHisto
     };
   }
 
-  // 3. Currency / Reward Extortion & Cheat Demands
+  // 6. Currency / Reward Extortion & Cheat Demands (Reduces trust)
   if (
     msg.includes("gold") ||
     msg.includes("give me") ||
@@ -408,7 +753,7 @@ function getDeterministicFallbackResponse(playerMessage, gameState, sessionHisto
     };
   }
 
-  // 4. False Claims of Holding Treasure
+  // 7. False Claims of Holding Treasure
   if (
     !gameState.hasTreasure &&
     (msg.includes("have the treasure") ||
@@ -426,7 +771,7 @@ function getDeterministicFallbackResponse(playerMessage, gameState, sessionHisto
     };
   }
 
-  // 5. Legitimate Gate Request with Treasure in Inventory
+  // 8. Legitimate Gate Request with Treasure in Inventory
   if (
     gameState.hasTreasure &&
     (msg.includes("open") ||
@@ -439,13 +784,13 @@ function getDeterministicFallbackResponse(playerMessage, gameState, sessionHisto
      msg.includes("let me in"))
   ) {
     return {
-      dialogue: "You have braved the restless dead and brought forth the Amulet of the Sunken Veil. Step back, traveler; I shall unlock the sanctuary gate for you.",
+      dialogue: `You have braved the restless dead and brought forth the Amulet of the Sunken Veil, ${playerName}. Step back; I shall unlock the sanctuary gate for you.`,
       proposed_action: { type: "OPEN_GATE", target: "sanctuary_gate" },
       reason: "Player possesses verified treasure and requested gate opening"
     };
   }
 
-  // 6. Premature Gate Request without Treasure
+  // 9. Premature Gate Request without Treasure
   if (
     !gameState.hasTreasure &&
     (msg.includes("open") ||
@@ -455,14 +800,28 @@ function getDeterministicFallbackResponse(playerMessage, gameState, sessionHisto
      msg.includes("enter") ||
      msg.includes("pass"))
   ) {
-    return {
-      dialogue: "The gate remains sealed by ancient sorrow. You must first venture into the ghost crypt to the east and retrieve the sacred treasure to prove your courage.",
-      proposed_action: { type: "NONE", target: null },
-      reason: "Player requested gate opening without holding the required relic"
-    };
+    if (trustScore >= 80) {
+      return {
+        dialogue: "That heavy iron archway remains sealed even to you, Althea. Retrieve the Amulet of the Sunken Veil from the eastern crypt, and the passage shall be yours.",
+        proposed_action: { type: "NONE", target: null },
+        reason: "Gentle reminder to trusted ally that the quest condition must still be met"
+      };
+    } else if (trustScore <= 29) {
+      return {
+        dialogue: "The gate will not yield to an unproven stranger. Retrieve the sacred relic from the crypt, or speak no further of entering.",
+        proposed_action: { type: "NONE", target: null },
+        reason: "Firm refusal to distrusted visitor"
+      };
+    } else {
+      return {
+        dialogue: "The gate remains sealed by ancient sorrow. You must first venture into the ghost crypt to the east and retrieve the sacred treasure to prove your courage.",
+        proposed_action: { type: "NONE", target: null },
+        reason: "Player requested gate opening without holding the required relic"
+      };
+    }
   }
 
-  // 7. Quest Acceptance / Offering Help (when NOT_STARTED)
+  // 10. Quest Acceptance / Offering Help (when NOT_STARTED)
   if (
     gameState.questStatus === "NOT_STARTED" &&
     (msg.includes("accept") ||
@@ -476,25 +835,46 @@ function getDeterministicFallbackResponse(playerMessage, gameState, sessionHisto
      msg.includes("task") ||
      msg.includes("ready"))
   ) {
-    return {
-      dialogue: "Very well, traveler. Journey east through the misty woods into the ghost crypt and recover the Amulet of the Sunken Veil. Only then will the gate open.",
-      proposed_action: { type: "ACCEPT_QUEST", target: "player" },
-      reason: "Player agreed to help or inquired about the sanctuary quest"
-    };
+    if (trustScore >= 80) {
+      return {
+        dialogue: `I knew your courage would not waver, ${playerName}. Cross the canal and brave the frost cavern to claim the Amulet of the Sunken Veil. May the ancient stars watch over you.`,
+        proposed_action: { type: "ACCEPT_QUEST", target: "player" },
+        reason: "Warm quest acceptance for trusted explorer"
+      };
+    } else if (trustScore <= 29) {
+      return {
+        dialogue: "Words are cheap in the dark, intruder. If you truly seek to prove yourself, bring back the Amulet from the ghost crypt. Only deeds will move me.",
+        proposed_action: { type: "ACCEPT_QUEST", target: "player" },
+        reason: "Guarded quest acceptance for distrusted visitor"
+      };
+    } else {
+      return {
+        dialogue: "Very well, traveler. Journey east through the misty woods into the ghost crypt and recover the Amulet of the Sunken Veil. Only then will the gate open.",
+        proposed_action: { type: "ACCEPT_QUEST", target: "player" },
+        reason: "Player agreed to help or inquired about the sanctuary quest"
+      };
+    }
   }
 
-  // 8. Active Quest Reminders & Guidance
+  // 11. Active Quest Reminders & Guidance
   if (gameState.questStatus === "ACTIVE") {
     if (msg.includes("where") || msg.includes("crypt") || msg.includes("what should i do") || msg.includes("remind") || msg.includes("amulet")) {
+      if (hasGhostFearMemory) {
+        return {
+          dialogue: "Remember to steady your breathing among the tombs, traveler. The restless ghosts circle the crypt, but the Amulet waits within the ancient chest.",
+          proposed_action: { type: "NONE", target: null },
+          reason: "Active quest guidance with ghost fear recall"
+        };
+      }
       return {
-        dialogue: "The spectral phantoms still circle the eastern crypt, traveler. Find the ancient chest, claim the Amulet of the Sunken Veil, and return to my side.",
+        dialogue: "The spectral phantoms still circle the eastern crypt, traveler. Solve the Tri-Rune pedestals, claim the Amulet from the chest, and return to my side.",
         proposed_action: { type: "NONE", target: null },
         reason: "Active quest guidance for ghost crypt exploration"
       };
     }
   }
 
-  // 9. When Gate is Already Open / In Opening Sequence
+  // 12. When Gate is Already Open / In Opening Sequence
   if (gameState.gateState === "OPEN" || gameState.gateState === "OPENING") {
     return {
       dialogue: "The iron gates stand parted for you. Step forward into the inner sanctuary and claim what is rightfully yours.",
@@ -503,7 +883,7 @@ function getDeterministicFallbackResponse(playerMessage, gameState, sessionHisto
     };
   }
 
-  // 10. When Quest is Fully Completed
+  // 13. When Quest is Fully Completed
   if (gameState.questStatus === "COMPLETED") {
     return {
       dialogue: "You have walked where few mortals dare and survived. The sanctuary honors your courage, traveler. My vigil continues in peace.",
@@ -512,7 +892,7 @@ function getDeterministicFallbackResponse(playerMessage, gameState, sessionHisto
     };
   }
 
-  // 11. Guardian Role & Vigil Inquiries
+  // 14. Guardian Role & Vigil Inquiries
   if (
     msg.includes("why are you guarding") ||
     msg.includes("why guard") ||
@@ -527,7 +907,7 @@ function getDeterministicFallbackResponse(playerMessage, gameState, sessionHisto
     };
   }
 
-  // 12. Identity & Greetings
+  // 15. Identity & Greetings
   if (
     msg.includes("who are you") ||
     msg.includes("your name") ||
@@ -536,14 +916,28 @@ function getDeterministicFallbackResponse(playerMessage, gameState, sessionHisto
     msg.includes("greetings") ||
     msg.includes("hi")
   ) {
-    return {
-      dialogue: "I am Maaya, silent watcher of Blackwood Manor's forbidden depths. Few mortals wander this far, traveler... and fewer still survive what lies beyond.",
-      proposed_action: { type: "NONE", target: null },
-      reason: "Identity introduction and atmospheric greeting"
-    };
+    if (trustScore >= 80) {
+      return {
+        dialogue: `Greetings once more, ${playerName}. I am MAAYA, and my vigil is eased by your presence. What brings you to the restricted wing today?`,
+        proposed_action: { type: "NONE", target: null },
+        reason: "High trust warm greeting"
+      };
+    } else if (trustScore <= 29) {
+      return {
+        dialogue: "I am MAAYA, sentinel of these sealed halls. Make your purpose known quickly, stranger; these shadows do not welcome uninvited curiosity.",
+        proposed_action: { type: "NONE", target: null },
+        reason: "Low trust guarded greeting"
+      };
+    } else {
+      return {
+        dialogue: "I am MAAYA, silent watcher of Blackwood Manor's forbidden depths. Few mortals wander this far, traveler... and fewer still survive what lies beyond.",
+        proposed_action: { type: "NONE", target: null },
+        reason: "Identity introduction and atmospheric greeting"
+      };
+    }
   }
 
-  // 13. World Lore & Setting
+  // 16. World Lore & Setting
   if (
     msg.includes("ruin") ||
     msg.includes("manor") ||
@@ -560,7 +954,21 @@ function getDeterministicFallbackResponse(playerMessage, gameState, sessionHisto
     };
   }
 
-  // 14. Default Contextual Atmospheric Response
+  // 17. Default Contextual Atmospheric Response
+  if (trustScore >= 80) {
+    return {
+      dialogue: `The ancient winds whisper of your loyalty, ${playerName}. Speak what is in your heart; I am listening.`,
+      proposed_action: { type: "NONE", target: null },
+      reason: "High trust atmospheric dialogue"
+    };
+  } else if (trustScore <= 29) {
+    return {
+      dialogue: "Tread carefully, intruder. Every stone here remembers, and my patience is not without limit.",
+      proposed_action: { type: "NONE", target: null },
+      reason: "Low trust atmospheric dialogue"
+    };
+  }
+
   return {
     dialogue: "The shadows listen closely to your words, traveler. Tread carefully, and speak with purpose before the sealed archway.",
     proposed_action: { type: "NONE", target: null },
@@ -803,12 +1211,13 @@ const server = http.createServer(async (req, res) => {
       game: "MaayaVerse: The Living NPC",
       character: "MAAYA",
       domain: "Restricted Wing, Blackwood Manor",
-      stage: 2,
+      stage: 3,
       primaryModel: PRIMARY_MODEL,
       fallbackModel: FALLBACK_MODEL,
       activeModel: primaryAvailable ? PRIMARY_MODEL : FALLBACK_MODEL,
       apiStatus: currentAiStatus,
       fallbackEngineReady: true,
+      activeProfile: cachedProfiles?.activeProfileId || "player1",
       circuitBreaker: {
         primaryQuotaExhausted: !primaryAvailable,
         primaryCooldownSecondsRemaining: Math.max(0, Math.ceil((primaryQuotaExhaustedUntil - Date.now()) / 1000)),
@@ -819,15 +1228,154 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Profile Management Endpoints (Stage 3 Innovation & Intelligence)
+  if (req.method === "GET" && pathname === "/api/profiles") {
+    const data = cachedProfiles || loadProfiles();
+    sendJson(res, 200, {
+      success: true,
+      activeProfileId: data.activeProfileId,
+      profiles: data.profiles
+    });
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/profile/select") {
+    try {
+      const body = await parseJsonBody(req);
+      const profileId = body.profileId;
+      const data = cachedProfiles || loadProfiles();
+      if (!data.profiles[profileId]) {
+        sendJson(res, 400, { success: false, error: `Invalid profileId: ${profileId}` });
+        return;
+      }
+      data.activeProfileId = profileId;
+      saveProfiles(data);
+
+      if (body.sessionId && sessions.has(body.sessionId)) {
+        const s = sessions.get(body.sessionId);
+        s.profileId = profileId;
+        s.gameState = data.profiles[profileId].gameState;
+      }
+
+      let greeting = "Step carefully, traveler. I am MAAYA, sentinel of these sealed halls.";
+      if (profileId === "player1") {
+        greeting = "Welcome back, Althea. Your scholar's wisdom is always welcome at Blackwood Gate. Have you discovered any clues regarding the Moonlit Amulet or the three runes in the Frost Cavern?";
+      } else if (profileId === "player2") {
+        greeting = "Halt, Kaelen. You walk the boundary of Blackwood Manor. I do not yet know your intentions—tell me what brings you to disturb my vigil.";
+      } else if (profileId === "player3") {
+        greeting = "Hold, Vane! I remember your shadow lingering near the restricted wing. You have not earned passage here. Keep your hands where I can see them.";
+      }
+
+      sendJson(res, 200, {
+        success: true,
+        activeProfileId: profileId,
+        profile: data.profiles[profileId],
+        greeting
+      });
+    } catch (err) {
+      sendJson(res, 500, { success: false, error: err.message });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/profile/reset") {
+    try {
+      const body = await parseJsonBody(req);
+      const profileId = body.profileId || (cachedProfiles?.activeProfileId || "player1");
+      const defaults = getDefaultProfiles();
+      if (!defaults.profiles[profileId]) {
+        sendJson(res, 400, { success: false, error: `Cannot reset unknown profile: ${profileId}` });
+        return;
+      }
+      const data = cachedProfiles || loadProfiles();
+      data.profiles[profileId] = JSON.parse(JSON.stringify(defaults.profiles[profileId]));
+      saveProfiles(data);
+
+      if (body.sessionId && sessions.has(body.sessionId)) {
+        const s = sessions.get(body.sessionId);
+        s.gameState = data.profiles[profileId].gameState;
+        s.history = [];
+        s.lastInteractionId = null;
+      }
+
+      let greeting = "Step carefully, traveler. I am MAAYA, sentinel of these sealed halls.";
+      if (profileId === "player1") {
+        greeting = "Welcome back, Althea. Your scholar's wisdom is always welcome at Blackwood Gate. Have you discovered any clues regarding the Moonlit Amulet or the three runes in the Frost Cavern?";
+      } else if (profileId === "player2") {
+        greeting = "Halt, Kaelen. You walk the boundary of Blackwood Manor. I do not yet know your intentions—tell me what brings you to disturb my vigil.";
+      } else if (profileId === "player3") {
+        greeting = "Hold, Vane! I remember your shadow lingering near the restricted wing. You have not earned passage here. Keep your hands where I can see them.";
+      }
+
+      sendJson(res, 200, {
+        success: true,
+        message: `Profile ${profileId} (${data.profiles[profileId].name}) reset to initial state.`,
+        profile: data.profiles[profileId],
+        greeting
+      });
+    } catch (err) {
+      sendJson(res, 500, { success: false, error: err.message });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && pathname === "/api/profile/memory") {
+    try {
+      const body = await parseJsonBody(req);
+      const data = cachedProfiles || loadProfiles();
+      const profileId = body.profileId || data.activeProfileId || "player1";
+      const profile = data.profiles[profileId];
+      if (!profile) {
+        sendJson(res, 400, { success: false, error: "Profile not found" });
+        return;
+      }
+      if (!body.text || !body.text.trim()) {
+        sendJson(res, 400, { success: false, error: "Memory text required" });
+        return;
+      }
+      const newMem = {
+        id: "mem_" + Date.now(),
+        type: body.type || "fact",
+        text: body.text.trim(),
+        timestamp: Date.now()
+      };
+      if (!Array.isArray(profile.memories)) profile.memories = [];
+      profile.memories.push(newMem);
+      saveProfiles(data);
+
+      sendJson(res, 200, {
+        success: true,
+        memory: newMem,
+        memories: profile.memories
+      });
+    } catch (err) {
+      sendJson(res, 500, { success: false, error: err.message });
+    }
+    return;
+  }
+
   // Game state inspection endpoint
   if (req.method === "GET" && pathname === "/api/game/state") {
     const sessionId = parsedUrl.searchParams.get("sessionId");
-    const { id, session } = getOrCreateSession(sessionId);
+    const requestedProfile = parsedUrl.searchParams.get("profileId");
+    const { id, session, profile } = getOrCreateSession(sessionId, requestedProfile);
     sendJson(res, 200, {
       success: true,
       sessionId: id,
       gameState: session.gameState,
-      state: session.gameState
+      state: session.gameState,
+      profile: {
+        id: profile.id,
+        name: profile.name,
+        title: profile.title,
+        trustScore: profile.trustScore,
+        trustLevel: profile.trustLevel,
+        memories: profile.memories
+      },
+      trust: {
+        score: profile.trustScore,
+        level: profile.trustLevel
+      }
     });
     return;
   }
@@ -836,7 +1384,8 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "POST" && pathname === "/api/game/action") {
     try {
       const body = await parseJsonBody(req);
-      const { id: sessionId, session } = getOrCreateSession(body.sessionId);
+      const requestedProfile = body.profileId || null;
+      const { id: sessionId, session, profile } = getOrCreateSession(body.sessionId, requestedProfile);
       const action = body.action;
 
       if (action === "COLLECT_TREASURE") {
@@ -845,10 +1394,20 @@ const server = http.createServer(async (req, res) => {
           session.gameState.treasureChestOpened = true;
           session.gameState.questStatus = "TREASURE_COLLECTED";
           session.gameState.historyLog.push({ event: "TREASURE_COLLECTED_WORLD", timestamp: Date.now() });
+
+          const data = cachedProfiles || loadProfiles();
+          saveProfiles(data);
+
           sendJson(res, 200, {
             success: true,
             gameState: session.gameState,
             state: session.gameState,
+            profile: {
+              id: profile.id,
+              name: profile.name,
+              trustScore: profile.trustScore,
+              trustLevel: profile.trustLevel
+            },
             message: "You opened the ancient chest and claimed the Amulet of the Sunken Veil!"
           });
           return;
@@ -867,6 +1426,10 @@ const server = http.createServer(async (req, res) => {
         if (session.gameState.gateState === "OPENING" || session.gameState.gateState === "OPEN") {
           session.gameState.gateState = "OPEN";
           session.gameState.historyLog.push({ event: "GATE_FULLY_OPENED", timestamp: Date.now() });
+
+          const data = cachedProfiles || loadProfiles();
+          saveProfiles(data);
+
           sendJson(res, 200, {
             success: true,
             gameState: session.gameState,
@@ -884,6 +1447,10 @@ const server = http.createServer(async (req, res) => {
           session.gameState.xp += 50;
           session.gameState.questStatus = "COMPLETED";
           session.gameState.historyLog.push({ event: "SANCTUARY_DISCOVERED", reward: { gold: 100, xp: 50 }, timestamp: Date.now() });
+
+          const data = cachedProfiles || loadProfiles();
+          saveProfiles(data);
+
           sendJson(res, 200, {
             success: true,
             gameState: session.gameState,
@@ -912,10 +1479,148 @@ const server = http.createServer(async (req, res) => {
         }
       }
 
+      // Stage 3 Tri-Rune Environmental Puzzle
+      if (action === "ACTIVATE_RUNE") {
+        const rune = String(body.rune || "").toLowerCase().trim();
+        const PUZZLE_SEQUENCE = ["ignis", "glacies", "aether"];
+        if (!Array.isArray(session.gameState.runesActivated)) {
+          session.gameState.runesActivated = [];
+        }
+
+        const currentStep = session.gameState.runesActivated.length;
+        const expectedRune = PUZZLE_SEQUENCE[currentStep];
+
+        if (rune === expectedRune) {
+          session.gameState.runesActivated.push(rune);
+          if (session.gameState.runesActivated.length === PUZZLE_SEQUENCE.length) {
+            session.gameState.puzzleSolved = true;
+            session.gameState.historyLog.push({ event: "TRI_RUNE_PUZZLE_SOLVED", timestamp: Date.now() });
+            applyVerifiedTrustEvent(profile, 5, "PUZZLE_SOLVED", "Harmonized the Tri-Rune barrier");
+            const data = cachedProfiles || loadProfiles();
+            saveProfiles(data);
+
+            sendJson(res, 200, {
+              success: true,
+              puzzleSolved: true,
+              runesActivated: session.gameState.runesActivated,
+              sequence: session.gameState.runesActivated,
+              trustScore: profile.trustScore,
+              trustLevel: profile.trustLevel,
+              gameState: session.gameState,
+              state: session.gameState,
+              trust: { score: profile.trustScore, level: profile.trustLevel },
+              message: "✦ The Tri-Rune Barrier shimmers and dissipates into the mist!"
+            });
+            return;
+          } else {
+            const data = cachedProfiles || loadProfiles();
+            saveProfiles(data);
+
+            sendJson(res, 200, {
+              success: true,
+              puzzleSolved: false,
+              runesActivated: session.gameState.runesActivated,
+              sequence: session.gameState.runesActivated,
+              trustScore: profile.trustScore,
+              trustLevel: profile.trustLevel,
+              gameState: session.gameState,
+              state: session.gameState,
+              message: `✦ The ${rune.toUpperCase()} pedestal resonates with arcane power.`
+            });
+            return;
+          }
+        } else {
+          // Wrong order: Reset puzzle sequence
+          session.gameState.runesActivated = [];
+          const data = cachedProfiles || loadProfiles();
+          saveProfiles(data);
+
+          sendJson(res, 200, {
+            success: true,
+            puzzleSolved: false,
+            reset: true,
+            runesActivated: [],
+            sequence: [],
+            gameState: session.gameState,
+            state: session.gameState,
+            message: "✦ The runic sequence collapsed! The pedestals reset to slumber."
+          });
+          return;
+        }
+      }
+
+      // Stage 3 Hazard Feedback & Zone Tracking
+      if (action === "RECORD_HAZARD") {
+        const hazardType = body.type || body.hazardType || "generic";
+        const details = body.details || `Hazard encountered: ${hazardType}`;
+        session.gameState.historyLog.push({ event: "HAZARD_TRIGGERED", hazardType, details, timestamp: Date.now() });
+
+        const memoryEntry = {
+          id: "mem_hazard_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+          type: "HAZARD",
+          content: `Faced ${hazardType} hazard: ${details}`,
+          text: `Faced ${hazardType} hazard: ${details}`,
+          timestamp: Date.now()
+        };
+        if (!Array.isArray(profile.memories)) profile.memories = [];
+        profile.memories.push(memoryEntry);
+
+        const data = cachedProfiles || loadProfiles();
+        saveProfiles(data);
+
+        sendJson(res, 200, {
+          success: true,
+          hazardType,
+          profile,
+          message: `Hazard recorded: ${hazardType}`
+        });
+        return;
+      }
+
+      if (action === "UPDATE_ZONE") {
+        const zone = body.zone || "Ancient Settlement";
+        session.gameState.currentZone = zone;
+        sendJson(res, 200, {
+          success: true,
+          currentZone: zone
+        });
+        return;
+      }
+
+      if (action === "CONFIDE_FEAR") {
+        const fearText = body.fear || "spectral phantoms";
+        const memoryEntry = {
+          id: "mem_fear_" + Date.now(),
+          type: "fear",
+          text: `Confided honest fear of ${fearText}.`,
+          timestamp: Date.now()
+        };
+        if (!Array.isArray(profile.memories)) profile.memories = [];
+        profile.memories.push(memoryEntry);
+        applyVerifiedTrustEvent(profile, 3, "FEAR_CONFIDED_" + fearText.slice(0, 10).replace(/\s+/g, "_"), "Honest vulnerability shared with sentinel");
+
+        const data = cachedProfiles || loadProfiles();
+        saveProfiles(data);
+
+        sendJson(res, 200, {
+          success: true,
+          memory: memoryEntry,
+          trust: { score: profile.trustScore, level: profile.trustLevel },
+          message: `MAAYA acknowledges your honesty regarding ${fearText}.`
+        });
+        return;
+      }
+
       if (action === "RESET_GAME") {
         session.gameState = createInitialGameState();
         session.lastInteractionId = null;
         session.history = [];
+        if (profile) {
+          profile.gameState = session.gameState;
+        }
+        const data = cachedProfiles || loadProfiles();
+        saveProfiles(data);
+
         sendJson(res, 200, {
           success: true,
           gameState: session.gameState,
@@ -937,16 +1642,29 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "POST" && pathname === "/api/reset") {
     try {
       const body = await parseJsonBody(req);
-      const { id, session } = getOrCreateSession(body.sessionId);
+      const requestedProfile = body.profileId || null;
+      const { id, session, profile } = getOrCreateSession(body.sessionId, requestedProfile);
       session.lastInteractionId = null;
       session.history = [];
       session.gameState = createInitialGameState();
+      if (profile) {
+        profile.gameState = session.gameState;
+      }
+      const data = cachedProfiles || loadProfiles();
+      saveProfiles(data);
 
       sendJson(res, 200, {
         success: true,
         sessionId: id,
         greeting: INITIAL_GREETING,
         gameState: session.gameState,
+        state: session.gameState,
+        profile: {
+          id: profile.id,
+          name: profile.name,
+          trustScore: profile.trustScore,
+          trustLevel: profile.trustLevel
+        },
         message: "Game and conversation state have been reset to the initial state."
       });
     } catch (err) {
@@ -955,7 +1673,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Chat message endpoint with Stage 2 Action Validation Protocol
+  // Chat message endpoint with Stage 2 Action Validation Protocol & Stage 3 Trust Evaluation
   if (req.method === "POST" && pathname === "/api/chat") {
     try {
       const body = await parseJsonBody(req);
@@ -979,7 +1697,8 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      const { id: sessionId, session } = getOrCreateSession(body.sessionId);
+      const requestedProfile = body.profileId || null;
+      const { id: sessionId, session, profile } = getOrCreateSession(body.sessionId, requestedProfile);
 
       // Concurrency guard: prevent duplicate API requests when player clicks repeatedly
       if (session.isProcessing) {
@@ -993,13 +1712,70 @@ const server = http.createServer(async (req, res) => {
       session.isProcessing = true;
 
       try {
-        // Construct live context-aware prompt with authoritative game state
-        const currentContext = `[CURRENT AUTHORITATIVE GAME STATE]
+        const msgLower = playerMessage.toLowerCase();
+
+        // 1. Authoritative Trust Evaluation Rules (Anti-cheat & Honesty verification)
+        // False Claim Penalty: claiming to have treasure when not holding it (-8 trust)
+        const isFalseClaim = !session.gameState.hasTreasure && (
+          (
+            (msgLower.includes("have") || msgLower.includes("got") || msgLower.includes("holding") || msgLower.includes("recovered")) &&
+            (msgLower.includes("treasure") || msgLower.includes("amulet") || msgLower.includes("relic"))
+          ) ||
+          msgLower.includes("in my hands") ||
+          msgLower.includes("in my inventory")
+        );
+        if (isFalseClaim) {
+          applyVerifiedTrustEvent(profile, -8, "FALSE_CLAIM_" + Date.now(), "Falsely claimed to hold the sacred relic");
+        }
+
+        // Extortion Penalty: demanding unearned currency or cheating (-5 trust)
+        const isExtortion = msgLower.includes("10000") ||
+                            msgLower.includes("50000") ||
+                            msgLower.includes("give me gold") ||
+                            msgLower.includes("give me money") ||
+                            msgLower.includes("cheat");
+        if (isExtortion) {
+          applyVerifiedTrustEvent(profile, -5, "EXTORTION_" + Math.floor(Date.now() / 30000), "Demanded arbitrary wealth and cheat commands");
+        }
+
+        // Fear Confiding Bonus: honestly confiding fears to MAAYA (+3 trust & memory save)
+        const isSharingFear = msgLower.includes("afraid of ghosts") ||
+                              msgLower.includes("fear ghosts") ||
+                              msgLower.includes("scared of ghosts") ||
+                              msgLower.includes("terrified of ghosts") ||
+                              msgLower.includes("fear the dead");
+        if (isSharingFear) {
+          if (!Array.isArray(profile.memories)) profile.memories = [];
+          if (!profile.memories.some(m => m.type === "fear" && m.text.includes("ghosts"))) {
+            profile.memories.push({
+              id: "mem_fear_ghosts",
+              type: "fear",
+              text: "Confided being deeply terrified of spectral ghosts in the crypt.",
+              timestamp: Date.now()
+            });
+          }
+          applyVerifiedTrustEvent(profile, 3, "CONFIDED_GHOST_FEAR", "Honestly confided fear of ghosts");
+        }
+
+        // Format persistent memories string for prompt injection
+        const memoriesContext = Array.isArray(profile.memories) && profile.memories.length > 0
+          ? profile.memories.map(m => `* [${m.type.toUpperCase()}]: ${m.text}`).join("\n")
+          : "* No prior memories recorded.";
+
+        // Construct live context-aware prompt with authoritative game state & Stage 3 profile data
+        const currentContext = `[CURRENT AUTHORITATIVE GAME & PROFILE CONTEXT]
+- Active Player: ${profile.name} (${profile.title})
+- Dynamic Trust Score: ${profile.trustScore}/100 | Trust Level: ${profile.trustLevel}
+- Current Zone: ${session.gameState.currentZone || "Ancient Settlement"}
+- Environmental Puzzle (Tri-Rune Barrier): ${session.gameState.puzzleSolved ? "SOLVED (Barrier Lowered)" : "UNSOLVED"}
 - Quest Status: ${session.gameState.questStatus}
 - Player Holds Ghost-Guarded Treasure in Inventory: ${session.gameState.hasTreasure ? "YES" : "NO"}
 - Sanctuary Gate State: ${session.gameState.gateState}
 - Sanctuary Reward Already Claimed: ${session.gameState.rewardClaimed ? "YES" : "NO"}
 - Player Gold: ${session.gameState.gold}, XP: ${session.gameState.xp}
+
+[PERSISTENT NPC MEMORIES OF ${profile.name.toUpperCase()}]
+${memoriesContext}
 
 Traveler says: "${playerMessage}"
 
@@ -1062,7 +1838,7 @@ Remember: Respond in strict JSON format:
             fallbackTriggered = true;
             if (!fallbackReason) fallbackReason = classified.type;
             console.warn(`[Fallback Engine] Activating context-aware guardian response (Reason: ${fallbackReason}).`);
-            const fallback = getDeterministicFallbackResponse(playerMessage, session.gameState, session.history);
+            const fallback = getDeterministicFallbackResponse(playerMessage, session.gameState, session.history, profile);
             replyRaw = JSON.stringify(fallback);
           }
         }
@@ -1073,7 +1849,6 @@ Remember: Respond in strict JSON format:
           const cleaned = replyRaw.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
           parsedAi = JSON.parse(cleaned);
         } catch (e) {
-          // Handle plain text response gracefully
           parsedAi = {
             dialogue: replyRaw || "The shadows whisper softly, yet stillness holds my tongue. Speak once more, traveler.",
             proposed_action: { type: "NONE", target: null },
@@ -1081,11 +1856,11 @@ Remember: Respond in strict JSON format:
           };
         }
 
-        // If AI didn't provide dialogue, extract or use fallback
+        // Extract spoken dialogue
         let spokenDialogue = parsedAi.dialogue || (typeof parsedAi === "string" ? parsedAi : "The shadows linger silently.");
 
-        // Independent, authoritative validation of AI proposed action against trusted game rules
-        const validation = validateAndApplyAction(parsedAi.proposed_action, session.gameState);
+        // Authoritative validation of AI proposed action against trusted game rules & profile
+        const validation = validateAndApplyAction(parsedAi.proposed_action, session.gameState, profile);
 
         // If the AI erroneously proposed to open the gate but player has no treasure, ensure spoken dialogue reflects game truth
         if (parsedAi.proposed_action?.type === "OPEN_GATE" && !validation.valid && !session.gameState.hasTreasure) {
@@ -1101,6 +1876,9 @@ Remember: Respond in strict JSON format:
           session.history = session.history.slice(-MAX_HISTORY_TURNS * 2);
         }
 
+        const data = cachedProfiles || loadProfiles();
+        saveProfiles(data);
+
         sendJson(res, 200, {
           success: true,
           reply: spokenDialogue,
@@ -1113,6 +1891,18 @@ Remember: Respond in strict JSON format:
           action_reason: validation.reason,
           gameState: session.gameState,
           state: session.gameState,
+          profile: {
+            id: profile.id,
+            name: profile.name,
+            title: profile.title,
+            trustScore: profile.trustScore,
+            trustLevel: profile.trustLevel,
+            memories: profile.memories
+          },
+          trust: {
+            score: profile.trustScore,
+            level: profile.trustLevel
+          },
           sessionId,
           interactionId: newInteractionId,
           fallbackActive: fallbackTriggered,

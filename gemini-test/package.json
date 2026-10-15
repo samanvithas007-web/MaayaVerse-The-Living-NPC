@@ -8,7 +8,9 @@
     "test": "node test.mjs",
     "test:dialogue": "node test-dialogue.mjs",
     "test:stage2": "node test-stage2.mjs",
-    "test:movement:3d": "node test-movement-3d.mjs"
+    "test:stage3": "node test-stage3.mjs",
+    "test:movement:3d": "node test-movement-3d.mjs",
+    "test:all": "node test-movement-3d.mjs && node test-stage2.mjs && node test-stage3.mjs"
   },
   "keywords": [],
   "author": "",

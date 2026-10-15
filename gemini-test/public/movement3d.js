@@ -23,6 +23,7 @@ class PlayerMovementController {
     this.moving = false;
     this.stepTimer = 0;
     this.obstacles = options.obstacles || [];
+    this.onIce = false; // Stage 3 Slippery Ice Surface dynamics
 
     this.keys = {
       up: false,
@@ -76,27 +77,63 @@ class PlayerMovementController {
       moveZ *= invLen;
     }
 
-    this.moving = (moveX !== 0 || moveZ !== 0);
+    const hasInput = (moveX !== 0 || moveZ !== 0);
 
-    if (this.moving) {
-      this.velocity.x = moveX * this.speed;
-      this.velocity.z = moveZ * this.speed;
-      this.rotation = Math.atan2(moveX, moveZ);
-      this.stepTimer += deltaTime;
+    if (this.onIce) {
+      // Slippery ice surface: reduced friction & sliding momentum
+      const targetVx = moveX * this.speed;
+      const targetVz = moveZ * this.speed;
+      const accel = hasInput ? 4.0 * deltaTime : 1.2 * deltaTime;
+      const friction = hasInput ? 0.98 : 0.94; // Slide when keys released
 
-      const nextX = this.position.x + this.velocity.x * deltaTime;
-      const nextZ = this.position.z + this.velocity.z * deltaTime;
+      this.velocity.x = (this.velocity.x + targetVx * accel) * friction;
+      this.velocity.z = (this.velocity.z + targetVz * accel) * friction;
 
-      // Check collision with separate X and Z resolution for smooth wall sliding
-      if (!this.checkCollision(nextX, this.position.z)) {
-        this.position.x = nextX;
-      }
-      if (!this.checkCollision(this.position.x, nextZ)) {
-        this.position.z = nextZ;
+      if (Math.abs(this.velocity.x) < 0.05) this.velocity.x = 0;
+      if (Math.abs(this.velocity.z) < 0.05) this.velocity.z = 0;
+
+      this.moving = Math.hypot(this.velocity.x, this.velocity.z) > 0.1;
+      if (this.moving) {
+        this.rotation = Math.atan2(this.velocity.x, this.velocity.z);
+        this.stepTimer += deltaTime;
+
+        const nextX = this.position.x + this.velocity.x * deltaTime;
+        const nextZ = this.position.z + this.velocity.z * deltaTime;
+
+        if (!this.checkCollision(nextX, this.position.z)) {
+          this.position.x = nextX;
+        } else {
+          this.velocity.x *= -0.2; // slight bounce off wall
+        }
+        if (!this.checkCollision(this.position.x, nextZ)) {
+          this.position.z = nextZ;
+        } else {
+          this.velocity.z *= -0.2;
+        }
       }
     } else {
-      this.velocity.x = 0;
-      this.velocity.z = 0;
+      // Standard responsive movement
+      this.moving = hasInput;
+      if (this.moving) {
+        this.velocity.x = moveX * this.speed;
+        this.velocity.z = moveZ * this.speed;
+        this.rotation = Math.atan2(moveX, moveZ);
+        this.stepTimer += deltaTime;
+
+        const nextX = this.position.x + this.velocity.x * deltaTime;
+        const nextZ = this.position.z + this.velocity.z * deltaTime;
+
+        // Check collision with separate X and Z resolution for smooth wall sliding
+        if (!this.checkCollision(nextX, this.position.z)) {
+          this.position.x = nextX;
+        }
+        if (!this.checkCollision(this.position.x, nextZ)) {
+          this.position.z = nextZ;
+        }
+      } else {
+        this.velocity.x = 0;
+        this.velocity.z = 0;
+      }
     }
   }
 
